@@ -9,7 +9,7 @@
         "description": "Specifies the name of the Function App."
       }
     },
-    "DocuSignO-AuthToken": {
+    "DocuSignAccessToken": {
       "defaultValue": "Enter the DocuSign OAuth Token",
       "type": "string",
       "metadata": {
@@ -245,7 +245,7 @@
             "[resourceId('Microsoft.KeyVault/vaults/', variables('KeyVaultName'))]"
           ],
           "properties": {
-            "value": "[parameters('DocuSignOAuthToken')]",
+            "value": "[parameters('DocuSignAccessToken')]",
             "contentType": "string",
             "attributes": {
               "enabled": true
