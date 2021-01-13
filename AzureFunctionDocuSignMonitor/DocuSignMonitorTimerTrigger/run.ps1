@@ -144,7 +144,7 @@ Function Write-OMSLogfile {
     return $returnCode
 }
 
-Function SendToLogA ($eventsData, $customLogName) {    	
+Function SendToLogA ($eventsData) {    	
 	#Test Size; Log A limit is 30MB
     $tempdata = @()
     $tempDataSize = 0
@@ -155,7 +155,7 @@ Function SendToLogA ($eventsData, $customLogName) {
             $tempdata += $record
             $tempDataSize += ($record | ConvertTo-Json -depth 20).Length
             if ($tempDataSize -gt 25MB) {
-                Write-OMSLogfile -dateTime (Get-Date) -type $CustomLogTable -logdata $tempdata -CustomerID $workspaceId -SharedKey $workspaceKey
+                $postLAStatus = Write-OMSLogfile -dateTime (Get-Date) -type $CustomLogTable -logdata $tempdata -CustomerID $workspaceId -SharedKey $workspaceKey
                 write-Host "Sending data = $TempDataSize"
                 $tempdata = $null
                 $tempdata = @()
@@ -163,11 +163,13 @@ Function SendToLogA ($eventsData, $customLogName) {
             }
         }
         Write-Host "Sending left over data = $Tempdatasize"
-        Write-OMSLogfile -dateTime (Get-Date) -type $CustomLogTable -logdata $eventsData -CustomerID $workspaceId -SharedKey $workspaceKey
+        $postLAStatus = Write-OMSLogfile -dateTime (Get-Date) -type $CustomLogTable -logdata $eventsData -CustomerID $workspaceId -SharedKey $workspaceKey
     }
     Else {          
-        Write-OMSLogfile -dateTime (Get-Date) -type $CustomLogTable -logdata $eventsData -CustomerID $workspaceId -SharedKey $workspaceKey        
+        $postLAStatus = Write-OMSLogfile -dateTime (Get-Date) -type $CustomLogTable -logdata $eventsData -CustomerID $workspaceId -SharedKey $workspaceKey        
     }
+	
+	return $postLAStatus
 }
 
 $docuSignAPIHeaders = @{
@@ -237,20 +239,27 @@ foreach($org in $docuSignOrgs){
                   
             $currentRunEndCursorValue = $monitorApiResponse.endCursor            
             Write-Output "currentRunEndCursorValue :$currentRunEndCursorValue"
-            Write-Output "Last run cursorValue : $lastRunEndCursorValue"
-             
-            # If the endCursor from the response is the same as the one that you already have,
-            # it means that you have reached the end of the records
-            if ($currentRunEndCursorValue.Substring(0, $currentRunEndCursorValue.LastIndexOf('_')) -eq $lastRunEndCursorValue.Substring(0, $lastRunEndCursorValue.LastIndexOf('_')) )
+            Write-Output "Last run cursorValue : $lastRunEndCursorValue"            
+            
+			if (![string]::IsNullOrEmpty($lastRunEndCursorValue))
             {
-                Write-Output 'Current run endCursor & last run endCursor values are the same. This indicates that you have reached the end of your available records.'
-                $complete=$true
+                # If the endCursor from the response is the same as the one that you already have,
+                # it means that you have reached the end of the records
+                if ($currentRunEndCursorValue.Substring(0, $currentRunEndCursorValue.LastIndexOf('_')) -eq $lastRunEndCursorValue.Substring(0, $lastRunEndCursorValue.LastIndexOf('_')))
+                {
+                    Write-Output 'Current run endCursor & last run endCursor values are the same. This indicates that you have reached the end of your available records.'
+                    $complete=$true
+                }
             }
-            else
-            {
+            
+            if(!$complete){           
                 Write-Output "Updating the cursor value of $lastRunEndCursorValue to the new value of $currentRunEndCursorValue"
-                $lastRunEndCursorValue=$currentRunEndCursorValue                
-                SendToLogA -EventsData $monitorApiResponse.data -customLogName $CustomLogTable 
+                $lastRunEndCursorValue=$currentRunEndCursorValue                                
+				$postReturnCode = SendToLogA -EventsData $monitorApiResponse.data
+                if($postReturnCode -eq 200)
+                {
+                    Write-Host ("{$monitorApiResponse.data.length} DocuSign Security Events have been ingested into Azure Log Analytics Workspace Table {$CustomLogTable}")
+                }
                 Remove-Item $monitorApiResponse
                 $lastRunEndCursorContext.org = $orgName
                 $lastRunEndCursorContext.lastRunEndCursor = $lastRunEndCursorValue
@@ -258,7 +267,7 @@ foreach($org in $docuSignOrgs){
                 $lastRunMonitorContext | ConvertTo-Json | Out-File "$tempDir\lastrun-Monitor.json"
                 Set-AzStorageBlobContent -Blob "lastrun-Monitor.json" -Container $storageAccountContainer -Context $storageAccountContext -File "$tempDir\lastrun-Monitor.json" -Force
                 Remove-Item "$tempDir\lastrun-Monitor.json" -Force
-                Remove-Item "$tempDir\orgs.json" -Force               
+				Remove-Item "$tempDir\orgs.json" -Force
                 Start-Sleep -Second 5
             }
         }
