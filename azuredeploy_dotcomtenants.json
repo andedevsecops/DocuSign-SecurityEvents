@@ -3,13 +3,13 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "FunctionName": {
-      "defaultValue": "DocuSignMonitor",
+      "defaultValue": "DocuSign",
       "type": "string",
       "metadata": {
         "description": "Specifies the name of the Function App."
       }
     },
-    "DocuSignOAuthToken": {
+    "DocuSignO-AuthToken": {
       "defaultValue": "Enter the DocuSign OAuth Token",
       "type": "string",
       "metadata": {
@@ -47,7 +47,7 @@
   },
   "variables": {
     "FunctionName": "[concat(toLower(parameters('FunctionName')), uniqueString(resourceGroup().id))]",
-    "KeyVaultName": "[tolower(concat('githubkv', uniqueString(resourceGroup().id, subscription().id)))]",
+    "KeyVaultName": "[tolower(concat('docusignkv', uniqueString(resourceGroup().id, subscription().id)))]",
     "DocuSignOAuthToken": "DocuSignOAuthToken",    
     "LogAnalyticsWorkspaceKey": "LogAnalyticsWorkspaceKey",
     "StorageContainerName": "docusign-monitor"
@@ -245,7 +245,7 @@
             "[resourceId('Microsoft.KeyVault/vaults/', variables('KeyVaultName'))]"
           ],
           "properties": {
-            "value": "[parameters('PersonalAccessToken')]",
+            "value": "[parameters('DocuSignOAuthToken')]",
             "contentType": "string",
             "attributes": {
               "enabled": true
