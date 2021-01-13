@@ -3,31 +3,38 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "FunctionName": {
-      "defaultValue": "GitHubLogs",
+      "defaultValue": "DocuSignMonitor",
       "type": "string",
       "metadata": {
         "description": "Specifies the name of the Function App."
       }
     },
-    "PersonalAccessToken": {
-      "defaultValue": "Enter the GitHub Personal Access Token (PAT)",
+    "DocuSignOAuthToken": {
+      "defaultValue": "Enter the DocuSign OAuth Token",
       "type": "string",
       "metadata": {
-        "description": "Specifies GitHub Enterprise Personal Access Token."
+        "description": "Specifies DocuSign OAuth Token."
       }
     },
     "WorkspaceId": {
       "type": "string",
       "defaultValue": "<WorkspaceId>",
       "metadata": {
-        "description": "Specifies the Log Analytics Workspace Id."
+        "description": "Specifies the Azure Log Analytics Workspace Id."
       }
     },
     "WorkspaceKey": {
       "type": "string",
       "defaultValue": "<WorkspaceKey>",
       "metadata": {
-        "description": "Specifies the Log Analytics Workspace Key."
+        "description": "Specifies the Azure Log Analytics Workspace Key."
+      }
+    },
+	"CustomLogTableName": {
+      "type": "string",
+      "defaultValue": "DocuSignSecurityEvents",
+      "metadata": {
+        "description": "Specifies the Azure Log Analytics Custom Log Table Name."
       }
     },
 	"FunctionSchedule": {
@@ -41,9 +48,9 @@
   "variables": {
     "FunctionName": "[concat(toLower(parameters('FunctionName')), uniqueString(resourceGroup().id))]",
     "KeyVaultName": "[tolower(concat('githubkv', uniqueString(resourceGroup().id, subscription().id)))]",
-    "GitAPIToken": "GitAPIToken",    
+    "GitAPIToken": "DocuSignOAuthToken",    
     "LogAnalyticsWorkspaceKey": "LogAnalyticsWorkspaceKey",
-    "StorageContainerName": "github-repo-logs"
+    "StorageContainerName": "docusign-monitor"
   },
   "resources": [
     {
@@ -177,7 +184,7 @@
           "dependsOn": [
             "[concat('Microsoft.Web/sites/', variables('FunctionName'))]",
             "[resourceId('Microsoft.KeyVault/vaults/', variables('KeyVaultName'))]",
-            "[resourceId('Microsoft.KeyVault/vaults/secrets', variables('KeyVaultName'), variables('GitAPIToken'))]",            
+            "[resourceId('Microsoft.KeyVault/vaults/secrets', variables('KeyVaultName'), variables('DocuSignOAuthToken'))]",            
             "[resourceId('Microsoft.KeyVault/vaults/secrets', variables('KeyVaultName'), variables('LogAnalyticsWorkspaceKey'))]"
           ],
           "properties": {
@@ -188,13 +195,14 @@
             "AzureWebJobsStorage": "[concat('DefaultEndpointsProtocol=https;AccountName=', toLower(variables('FunctionName')),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', toLower(variables('FunctionName'))), '2019-06-01').keys[0].value, ';EndpointSuffix=core.usgovcloudapi.net')]",
             "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING": "[concat('DefaultEndpointsProtocol=https;AccountName=', toLower(variables('FunctionName')),';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', toLower(variables('FunctionName'))), '2019-06-01').keys[0].value, ';EndpointSuffix=core.usgovcloudapi.net')]",
             "WEBSITE_CONTENTSHARE": "[toLower(variables('FunctionName'))]",
-            "PersonalAccessToken": "[concat('@Microsoft.KeyVault(SecretUri=', reference(variables('GitAPIToken')).secretUriWithVersion, ')')]",
+            "DocuSignOAuthAccessToken": "[concat('@Microsoft.KeyVault(SecretUri=', reference(variables('DocuSignOAuthToken')).secretUriWithVersion, ')')]",
             "TMPDIR": "D:\\local\\Temp",
             "WorkspaceId": "[parameters('WorkspaceId')]",
             "WorkspaceKey": "[concat('@Microsoft.KeyVault(SecretUri=', reference(variables('LogAnalyticsWorkspaceKey')).secretUriWithVersion, ')')]",
 			"Schedule": "[parameters('FunctionSchedule')]",
+			"CustomLogTableName": "[parameters('CustomLogTableName')]",
 			"AZURE_TENANT": ".us",			
-            "WEBSITE_RUN_FROM_PACKAGE": "https://aka.ms/githubazurefunctionzip"
+            "WEBSITE_RUN_FROM_PACKAGE": "https://github.com/andedevsecops/DocuSign-SecurityEvents/blob/main/AzureFunctionDocuSignMonitor/DocuSignMonitorTimerTrigger.zip?raw=true"
           }
         }
       ]      
@@ -233,7 +241,7 @@
         {
           "type": "secrets",
           "apiVersion": "2016-10-01",
-          "name": "[variables('GitAPIToken')]",
+          "name": "[variables('DocuSignOAuthToken')]",
           "dependsOn": [
             "[resourceId('Microsoft.KeyVault/vaults/', variables('KeyVaultName'))]"
           ],

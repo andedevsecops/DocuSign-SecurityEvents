@@ -3,13 +3,13 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "FunctionName": {
-      "defaultValue": "DocuSignSecEvents",
+      "defaultValue": "DocuSignMonitor",
       "type": "string",
       "metadata": {
         "description": "Specifies the name of the Function App."
       }
     },
-    "PersonalAccessToken": {
+    "DocuSignOAuthToken": {
       "defaultValue": "Enter the DocuSign OAuth Token",
       "type": "string",
       "metadata": {
@@ -30,7 +30,7 @@
         "description": "Specifies the Azure Log Analytics Workspace Key."
       }
     },
-	"CustomLogName": {
+	"CustomLogTableName": {
       "type": "string",
       "defaultValue": "DocuSignSecurityEvents",
       "metadata": {
@@ -195,12 +195,13 @@
             "AzureWebJobsStorage": "[concat('DefaultEndpointsProtocol=https;AccountName=', toLower(variables('FunctionName')),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', toLower(variables('FunctionName'))), '2019-06-01').keys[0].value, ';EndpointSuffix=core.windows.net')]",
             "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING": "[concat('DefaultEndpointsProtocol=https;AccountName=', toLower(variables('FunctionName')),';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', toLower(variables('FunctionName'))), '2019-06-01').keys[0].value, ';EndpointSuffix=core.windows.net')]",
             "WEBSITE_CONTENTSHARE": "[toLower(variables('FunctionName'))]",
-            "PersonalAccessToken": "[concat('@Microsoft.KeyVault(SecretUri=', reference(variables('DocuSignOAuthToken')).secretUriWithVersion, ')')]",
+            "DocuSignOAuthAccessToken": "[concat('@Microsoft.KeyVault(SecretUri=', reference(variables('DocuSignOAuthToken')).secretUriWithVersion, ')')]",
             "TMPDIR": "D:\\local\\Temp",
             "WorkspaceId": "[parameters('WorkspaceId')]",
             "WorkspaceKey": "[concat('@Microsoft.KeyVault(SecretUri=', reference(variables('LogAnalyticsWorkspaceKey')).secretUriWithVersion, ')')]",
 			"Schedule": "[parameters('FunctionSchedule')]",
-            "WEBSITE_RUN_FROM_PACKAGE": "https://aka.ms/githubazurefunctionzip"
+			"CustomLogTableName": "[parameters('CustomLogTableName')]",			
+            "WEBSITE_RUN_FROM_PACKAGE": "https://github.com/andedevsecops/DocuSign-SecurityEvents/blob/main/AzureFunctionDocuSignMonitor/DocuSignMonitorTimerTrigger.zip?raw=true"
           }
         }
       ]      
