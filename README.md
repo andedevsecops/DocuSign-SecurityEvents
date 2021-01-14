@@ -6,7 +6,7 @@ DocuSign-SecurityEvents Data connector ingests security events for your DocuSign
 Following are the configuration steps to deploy Data connector.
 
 ## **Pre-requisites**
-1. Obtain DocuSign OAuth Token
+1. Obtain DocuSign OAuth Token  
    Option #1  
    DocuSign OAuth Token is required. See the documentation to learn more about the [Obtain your OAuth token](https://developers.docusign.com/platform/auth/jwt/jwt- 
    get-token/).
@@ -83,7 +83,8 @@ Following are the configuration steps to deploy Data connector.
 1. Click on Deploy to Azure/Deploy to Azure Gov button
 
 2. Select the preferred **Subscription**, **Resource Group** and **Location**  
-   **Note** Best practise : Create new Resource Group while deploying - all the resources of your custom Data connector will reside in the newly created Resource 
+   **Note**  
+   Best practice : Create new Resource Group while deploying - all the resources of your custom Data connector will reside in the newly created Resource 
    Group
 3. Enter the following value in the ARM template deployment
 	```
@@ -91,12 +92,9 @@ Following are the configuration steps to deploy Data connector.
 	"Workspace Id": Azure Log Analytics Workspace Id​
 	"Workspace Key": Azure Log Analytics Workspace Key
 	"CustomLogTableName": Azure Log Analytics Custom Log Table Name
-	"Function Schedule": The `TimerTrigger` makes it incredibly easy to have your functions executed on a schedule. 
+	"Function Schedule": The `TimerTrigger` makes it incredibly easy to have your functions executed on a schedule. The default **Time Interval** is set to pull
+	the last ten (10) minutes of data.
 	```
-	**Note**  
-	The default **Time Interval** is set to pull the last ten (10) minutes of data.  
-	If the time interval needs to be modified, it is recommended to change the Function App Timer Trigger accordingly update environment variable **"Schedule**" 
-	(post deployment) to prevent overlapping data ingestion.  
 	
 ## Post Deployment Steps
 1. After successful deployment go to your Resource Group and search for storage account, named - `docusign<<uniqueid>>` and upload previously edited json files under "docusign-monitor" container 
@@ -119,14 +117,14 @@ Following are the configuration steps to deploy Data connector.
 
 	```
 
-3. The `TimerTrigger` makes it incredibly easy to have your functions executed on a schedule. This sample demonstrates a simple use case of calling your function based on your schedule provided while deploying. If you want to change
-   the schedule 
+3. The `TimerTrigger` makes it incredibly easy to have your functions executed on a schedule. This sample demonstrates a simple use case of calling your function based on your schedule provided while deploying. If the time interval needs to be modified, it is recommended to change the Function App Timer Trigger accordingly update environment variable **"Schedule**" (post deployment) to prevent overlapping data ingestion.
    ```
-   a.	Click on Function App "Configuration" under Settings 
-   b.	Click on "Schedule" under "Application Settings"
-   c.	Update your own schedule using cron expression.
+   a.	Go to your Resource Group --> Click on Function App `docusign<<uniqueid>>`
+   b.	Click on Function App "Configuration" under Settings 
+   c.	Click on "Schedule" under "Application Settings"
+   d.	Update your own schedule using cron expression.
    ```
-   **Note: For a `TimerTrigger` to work, you provide a schedule in the form of a [cron expression](https://en.wikipedia.org/wiki/Cron#CRON_expression)(See the link for full details). A cron expression is a string with 6 separate expressions which represent a given schedule via patterns. The pattern we use to represent every 5 minutes is `0 */5 * * * *`. This, in plain text, means: "When seconds is equal to 0, minutes is divisible by 5, for any hour, day of the month, month, day of the week, or year".**
+   **Note: For a `TimerTrigger` to work, you provide a schedule in the form of a [cron expression](https://en.wikipedia.org/wiki/Cron#CRON_expression)(See the link for full details). A cron expression is a string with 6 separate expressions which represent a given schedule via patterns. The pattern we use to represent every 10 minutes is `0 */10 * * * *`. This, in plain text, means: "When seconds is equal to 0, minutes is divisible by 10, for any hour, day of the month, month, day of the week, or year".**
 
 4. Verify Temp folder path
 	 ```
