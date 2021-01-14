@@ -8,8 +8,7 @@ Following are the configuration steps to deploy Data connector.
 ## **Pre-requisites**
 1. Obtain DocuSign OAuth Token  
    Option #1  
-   DocuSign OAuth Token is required. See the documentation to learn more about the [Obtain your OAuth token](https://developers.docusign.com/platform/auth/jwt/jwt- 
-   get-token/).
+   DocuSign OAuth Token is required. See the documentation to obtain https://developers.docusign.com/platform/auth/jwt/jwt-get-token/
  
 
    Option #2
