@@ -11,7 +11,6 @@
     The response from the DocuSign Monitor REST API is recieved in JSON format. This function will build the signature and authorization header 
     needed to post the data to the Log Analytics workspace via the HTTP Data Connector API.
 #>
-#Testing already installed function code will update this comments or not
 
 # Input bindings are passed in via param block.
 param($Timer)
