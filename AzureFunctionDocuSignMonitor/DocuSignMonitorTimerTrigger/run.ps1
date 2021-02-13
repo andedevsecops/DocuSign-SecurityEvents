@@ -286,6 +286,9 @@ $signedBase64Token = [System.Convert]::ToBase64String($signedToken) -replace '\+
 
 $jwtToken = "$encJwtHeader.$encJwtPayLoad.$signedBase64Token"
 
+$keyStream.Close()
+$keyStream.Dispose()
+
 # Step 2. Obtain the access token
 try {
     $authorizationEndpoint = "https://$jwtHost.docusign.com/oauth/"    
