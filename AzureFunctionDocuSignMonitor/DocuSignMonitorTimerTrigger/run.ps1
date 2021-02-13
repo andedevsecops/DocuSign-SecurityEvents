@@ -205,6 +205,8 @@ Function Install-NugetPackage {
     $zip.Dispose()
 }
 
+# Load required assemblies
+Install-NugetPackage DerConverter '3.0.0.82'
 Install-NugetPackage PemUtils '3.0.0.82'
 
 If ($DocuSignEnvironment.ToLower() -eq "demo") {
