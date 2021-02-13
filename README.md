@@ -17,58 +17,7 @@ Following are the configuration steps to deploy Data connector.
    3. Select any API end point and click on "Send Request" 
    4. If you receive "Success" response - copy the Authorization Bearer token (token only without Bearer prefix)  
 
-2. Copy two json files (ORGS.json and lastrun-Monitor.json) from Function Dependencies folder to your local drive
-3. Edit the ORGS.json file and update "org": "sampleorg" and replace sample org with your org name. 
-	```
-	If you have single org
-	[
-		{
-			"org": "sampleorg1"
-		}
-	]  
-
-	If you have multiple org's
-	[
-		{
-			"org": "sampleorg1"
-		},
-		{
-			"org": "sampleorg2"
-		},
-		{
-			"org": "sampleorg3"
-		}
-	]
-	```
-
-4. Edit lastrun-Monitor.json and update "org": "sampleorg" and replace sample org with your org name
-
-	```
-	If you have single org
-
-	[
-		{
-			"org":  "sampleorg1",
-			"lastRunEndCursor":  "",
-			"lastRun":  ""
-		}
-	]  
-
-	If you have multiple org's
-
-	[
-		{
-			"org":  "sampleorg1",
-			"lastRunEndCursor":  "",
-			"lastRun":  ""
-		},
-		{
-			"org":  "sampleorg2",
-			"lastRunEndCursor":  "",
-			"lastRun":  ""
-		}
-	]
-	```
+2.
 
 ## Deploy the Function App template
 <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fandedevsecops%2FDocuSign-SecurityEvents%2Fmain%2Fazuredeploy_dotcomtenants.json" target="_blank">

@@ -9,11 +9,25 @@
         "description": "Specifies the name of the Function App."
       }
     },
-    "DocuSignAccessToken": {
-      "defaultValue": "Enter the DocuSign OAuth Token",
+    "DocuSignIntegrationKey": {
+      "defaultValue": "Enter the DocuSign Integration Key",
       "type": "string",
       "metadata": {
-        "description": "Specifies DocuSign OAuth Token."
+        "description": "Specifies DocuSign Integration Key."
+      }
+    },
+	"DocuSignAdminUserGUID": {
+      "defaultValue": "Enter the DocuSign Admin User GUID",
+      "type": "string",
+      "metadata": {
+        "description": "Specifies DocuSign Admin User GUID"
+      }
+    },
+	"DocuSignAccountID": {
+      "defaultValue": "Enter the DocuSign Account ID",
+      "type": "string",
+      "metadata": {
+        "description": "Specifies DocuSign Account ID"
       }
     },
     "WorkspaceId": {
@@ -29,26 +43,14 @@
       "metadata": {
         "description": "Specifies the Azure Log Analytics Workspace Key."
       }
-    },
-	"CustomLogTableName": {
-      "type": "string",
-      "defaultValue": "DocuSignSecurityEvents",
-      "metadata": {
-        "description": "Specifies the Azure Log Analytics Custom Log Table Name."
-      }
-    },
-	"FunctionSchedule": {
-      "type": "string",
-      "defaultValue": "0 */10 * * * *",
-      "metadata": {
-        "description": "For a `TimerTrigger` to work, you provide a schedule in the form of a [cron expression](https://en.wikipedia.org/wiki/Cron#CRON_expression)(See the link for full details). A cron expression is a string with 6 separate expressions which represent a given schedule via patterns. The pattern we use to represent every 1 hour is `0 0 * * * *`. This, in plain text, means: When seconds is equal to 0, minutes is divisible by 5, for any hour, day of the month, month, day of the week, or year"
-      }
-    }
+    }	
   },
   "variables": {
     "FunctionName": "[concat(toLower(parameters('FunctionName')), uniqueString(resourceGroup().id))]",
     "KeyVaultName": "[tolower(concat('docusignkv', uniqueString(resourceGroup().id, subscription().id)))]",
-    "DocuSignOAuthToken": "DocuSignOAuthToken",    
+    "DocuSignIntegrationKey": "DocuSignIntegrationKey",
+	"DocuSignAdminUserGUID" : "DocuSignAdminUserGUID",
+	"DocuSignAccountID" : "DocuSignAccountID",
     "LogAnalyticsWorkspaceKey": "LogAnalyticsWorkspaceKey",
     "StorageContainerName": "docusign-monitor"
   },
@@ -184,7 +186,9 @@
           "dependsOn": [
             "[concat('Microsoft.Web/sites/', variables('FunctionName'))]",
             "[resourceId('Microsoft.KeyVault/vaults/', variables('KeyVaultName'))]",
-            "[resourceId('Microsoft.KeyVault/vaults/secrets', variables('KeyVaultName'), variables('DocuSignOAuthToken'))]",            
+            "[resourceId('Microsoft.KeyVault/vaults/secrets', variables('KeyVaultName'), variables('DocuSignIntegrationKey'))]",            
+			"[resourceId('Microsoft.KeyVault/vaults/secrets', variables('KeyVaultName'), variables('DocuSignAdminUserGUID'))]",            
+			"[resourceId('Microsoft.KeyVault/vaults/secrets', variables('KeyVaultName'), variables('DocuSignAccountID'))]",            
             "[resourceId('Microsoft.KeyVault/vaults/secrets', variables('KeyVaultName'), variables('LogAnalyticsWorkspaceKey'))]"
           ],
           "properties": {
@@ -195,12 +199,16 @@
             "AzureWebJobsStorage": "[concat('DefaultEndpointsProtocol=https;AccountName=', toLower(variables('FunctionName')),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', toLower(variables('FunctionName'))), '2019-06-01').keys[0].value, ';EndpointSuffix=core.windows.net')]",
             "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING": "[concat('DefaultEndpointsProtocol=https;AccountName=', toLower(variables('FunctionName')),';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', toLower(variables('FunctionName'))), '2019-06-01').keys[0].value, ';EndpointSuffix=core.windows.net')]",
             "WEBSITE_CONTENTSHARE": "[toLower(variables('FunctionName'))]",
-            "DocuSignOAuthAccessToken": "[concat('@Microsoft.KeyVault(SecretUri=', reference(variables('DocuSignOAuthToken')).secretUriWithVersion, ')')]",
+            "DocuSignIntegrationKey": "[concat('@Microsoft.KeyVault(SecretUri=', reference(variables('DocuSignIntegrationKey')).secretUriWithVersion, ')')]",
+			"DocuSignAdminUserGUID": "[concat('@Microsoft.KeyVault(SecretUri=', reference(variables('DocuSignAdminUserGUID')).secretUriWithVersion, ')')]",
+			"DocuSignAccountID": "[concat('@Microsoft.KeyVault(SecretUri=', reference(variables('DocuSignAccountID')).secretUriWithVersion, ')')]",
             "TMPDIR": "D:\\local\\Temp",
             "WorkspaceId": "[parameters('WorkspaceId')]",
             "WorkspaceKey": "[concat('@Microsoft.KeyVault(SecretUri=', reference(variables('LogAnalyticsWorkspaceKey')).secretUriWithVersion, ')')]",
-			"Schedule": "[parameters('FunctionSchedule')]",
-			"CustomLogTableName": "[parameters('CustomLogTableName')]",			
+			"Schedule": "0 */10 * * * *",
+			"LATable_DSMAPI": "DocuSign-SecurityEvents",
+			"$LATable_DSUsers": "DocuSign-Users",
+			"DocuSignEnvironment": "Demo"
             "WEBSITE_RUN_FROM_PACKAGE": "https://github.com/andedevsecops/DocuSign-SecurityEvents/blob/main/AzureFunctionDocuSignMonitor/DocuSignMonitorTimerTrigger.zip?raw=true"
           }
         }
@@ -240,18 +248,48 @@
         {
           "type": "secrets",
           "apiVersion": "2016-10-01",
-          "name": "[variables('DocuSignOAuthToken')]",
+          "name": "[variables('DocuSignIntegrationKey')]",
           "dependsOn": [
             "[resourceId('Microsoft.KeyVault/vaults/', variables('KeyVaultName'))]"
           ],
           "properties": {
-            "value": "[parameters('DocuSignAccessToken')]",
+            "value": "[parameters('DocuSignIntegrationKey')]",
             "contentType": "string",
             "attributes": {
               "enabled": true
             }
           }
-        },        
+        },
+		{
+          "type": "secrets",
+          "apiVersion": "2016-10-01",
+          "name": "[variables('DocuSignAdminUserGUID')]",
+          "dependsOn": [
+            "[resourceId('Microsoft.KeyVault/vaults/', variables('KeyVaultName'))]"
+          ],
+          "properties": {
+            "value": "[parameters('DocuSignAdminUserGUID')]",
+            "contentType": "string",
+            "attributes": {
+              "enabled": true
+            }
+          }
+        },
+		{
+          "type": "secrets",
+          "apiVersion": "2016-10-01",
+          "name": "[variables('DocuSignAccountID')]",
+          "dependsOn": [
+            "[resourceId('Microsoft.KeyVault/vaults/', variables('KeyVaultName'))]"
+          ],
+          "properties": {
+            "value": "[parameters('DocuSignAccountID')]",
+            "contentType": "string",
+            "attributes": {
+              "enabled": true
+            }
+          }
+        },   
         {
           "type": "secrets",
           "apiVersion": "2016-10-01",
