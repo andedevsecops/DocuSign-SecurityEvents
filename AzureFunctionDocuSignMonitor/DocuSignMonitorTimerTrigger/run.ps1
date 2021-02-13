@@ -176,7 +176,8 @@ Function SendToLogA ($eventsData, $eventsTable) {
     return $postLAStatus
 }
 
-    
+Install-Package PemUtils -RequiredVersion '3.0.0.82' -ProviderName NuGet -Source https://www.nuget.org/api/v2 -Scope CurrentUser -Force
+
 If ($DocuSignEnvironment.ToLower() -eq "demo") {
     $jwtHost = "account-d"
     $dsmHost = "lens-d"

@@ -202,13 +202,13 @@
             "DocuSignIntegrationKey": "[concat('@Microsoft.KeyVault(SecretUri=', reference(variables('DocuSignIntegrationKey')).secretUriWithVersion, ')')]",
 			"DocuSignAdminUserGUID": "[concat('@Microsoft.KeyVault(SecretUri=', reference(variables('DocuSignAdminUserGUID')).secretUriWithVersion, ')')]",
 			"DocuSignAccountID": "[concat('@Microsoft.KeyVault(SecretUri=', reference(variables('DocuSignAccountID')).secretUriWithVersion, ')')]",
-            "TMPDIR": "D:\\local\\Temp",
+            "TMPDIR": "C:\\local\\Temp",
             "WorkspaceId": "[parameters('WorkspaceId')]",
             "WorkspaceKey": "[concat('@Microsoft.KeyVault(SecretUri=', reference(variables('LogAnalyticsWorkspaceKey')).secretUriWithVersion, ')')]",
 			"Schedule": "0 */10 * * * *",
 			"LATable_DSMAPI": "DocuSign-SecurityEvents",
 			"$LATable_DSUsers": "DocuSign-Users",
-			"DocuSignEnvironment": "Demo"
+			"DocuSignEnvironment": "Demo",
             "WEBSITE_RUN_FROM_PACKAGE": "https://github.com/andedevsecops/DocuSign-SecurityEvents/blob/main/AzureFunctionDocuSignMonitor/DocuSignMonitorTimerTrigger.zip?raw=true"
           }
         }
