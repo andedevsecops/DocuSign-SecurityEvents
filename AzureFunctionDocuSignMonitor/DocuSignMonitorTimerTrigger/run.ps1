@@ -39,7 +39,7 @@ $DocuSignEnvironment = $env:DocuSignEnvironment
 $workspaceId = $env:WorkspaceId
 $workspaceKey = $env:WorkspaceKey
 $storageAccountContainer = "docusign-monitor"
-$storageAccountTableName = "docusign-executions"
+$storageAccountTableName = "docusignexecutions"
 $LATable_DSMAPI = $env:LATable_DSMAPI
 $LATable_DSUsers = $env:LATable_Users
 $tempDir=$env:TMPDIR
@@ -297,7 +297,119 @@ try {
         -Method "POST" `
         -Body "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=$jwtToken"
     
-        $docuSignAccessToken = ($tokenResponse | ConvertFrom-Json).access_token        
+    $docuSignAccessToken = ($tokenResponse | ConvertFrom-Json).access_token
+	
+	#Setup uri Headers for requests to DSM API & User API
+	$docuSignAPIHeaders = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+	$docuSignAPIHeaders.Add("Content-Type", "application/json")
+	$docuSignAPIHeaders.Add("Authorization", "Bearer $docuSignAccessToken")
+
+	$StorageTable = Get-AzStorageTable -Name $storageAccountTableName -Context $storageAccountContext -ErrorAction Ignore
+	if($null -eq $StorageTable.Name){  
+		New-AzStorageTable -Name $storageAccountTableName -Context $storageAccountContext
+		$docuSignTimeStampTbl = (Get-AzStorageTable -Name $storageAccountTableName -Context $storageAccountContext.Context).cloudTable    
+		Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey "part1" -RowKey "lastRunEndCursor" -property @{"uri"=""} -UpdateExisting
+		Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey "part2" -RowKey "end_position" -property @{"uri"="0"} -UpdateExisting
+	}
+	Else {
+		$docuSignTimeStampTbl = (Get-AzStorageTable -Name $storageAccountTableName -Context $storageAccountContext.Context).cloudTable
+	}
+	# retrieve the last execution values
+	$lastExeEndCursor = Get-azTableRow -table $docuSignTimeStampTbl -partitionKey "part1" -RowKey "lastRunEndCursor" -ErrorAction Ignore
+	$lastExeEndPos = Get-azTableRow -table $docuSignTimeStampTbl -partitionKey "part2" -RowKey "end_position" -ErrorAction Ignore
+	$lastRunEndCursorValue = $lastExeEndCursor.uri
+	$startUserValue = $lastExeEndPos.uri
+	if ($startUserValue -gt 0){
+		$startUserValue = [int]$startUserValue + 1
+	}
+
+	$complete=$false    
+	$iterations=0
+	DO{
+		$iterations++	
+		try{
+			$docuSignMonitorAPI=$null
+			$monitorApiResponse = $null
+			$docuSignMonitorAPI = "https://${dsmHost}.docusign.net/api/v2.0/datasets/monitor/stream?cursor=${lastRunEndCursorValue}&limit=2000"
+			$monitorApiResponse = Invoke-RestMethod -Uri $docuSignMonitorAPI -Method 'GET' -Headers $docuSignAPIHeaders
+			
+			# Display the data
+			Write-Output "Iteration:$iterations"           
+
+			# Get the endCursor value from the response. This lets you resume
+			# getting records from the spot where this call left off
+			#Response from Invoke-RestMethod        
+			$currentRunEndCursorValue = $monitorApiResponse.endCursor            
+			Write-Output "currentRunEndCursorValue :$currentRunEndCursorValue"
+			Write-Output "Last run cursorValue : $lastRunEndCursorValue"
+				
+			if (![string]::IsNullOrEmpty($lastRunEndCursorValue))
+			{
+				# If the endCursor from the response is the same as the one that you already have,
+				# it means that you have reached the end of the records
+				if ($currentRunEndCursorValue.Substring(0, $currentRunEndCursorValue.LastIndexOf('_')) -eq $lastRunEndCursorValue.Substring(0, $lastRunEndCursorValue.LastIndexOf('_')))
+				{
+					Write-Output 'Current run endCursor & last run endCursor values are the same. This indicates that you have reached the end of your available records.'
+					$complete=$true
+				}
+			}
+			
+			if(!$complete){           
+				Write-Output "Updating the cursor value of $lastRunEndCursorValue to the new value of $currentRunEndCursorValue"
+				$lastRunEndCursorValue=$currentRunEndCursorValue                
+				$postReturnCode = SendToLogA -EventsData $monitorApiResponse.data -EventsTable $LATable_DSMAPI
+				if($postReturnCode -eq 200)
+				{
+					Write-Host ("{$monitorApiResponse.data.length} DocuSign Security Events have been ingested into Azure Log Analytics Workspace Table {$LATable_DSMAPI}")
+				}
+				Remove-Item $monitorApiResponse
+				Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey "part1" -RowKey "lastRunEndCursor" -property @{"uri"=$lastRunEndCursorValue} -UpdateExisting                           
+				Start-Sleep -Second 5
+			}        
+		}
+		catch{
+			$int = 0
+			foreach($header in $_.Exception.Response.Headers){
+				if($header -eq "X-DocuSign-TraceToken"){ write-host "TraceToken : " $_.Exception.Response.Headers[$int]}
+				$int++
+			}
+			write-host "Error : $_.ErrorDetails.Message"
+			write-host "Command : $_.InvocationInfo.Line"
+			$complete = $true
+		} 
+
+	} While ($complete -eq $false )
+
+	#users Export
+	try{
+		$docuSignUsersAPI=$null
+		$userApiResponse = $null
+		$docuSignUsersAPI = "https://demo.docusign.net/restapi/v2.1/accounts/$DocuSignAccountID/users?additional_info=true&start_position=$startUserValue"
+		$userApiResponse = Invoke-RestMethod -Uri $docuSignUsersAPI -Method 'GET' -Headers $docuSignAPIHeaders
+
+		Write-Output "Updating the cursor value of $startUserValue to the new value of $userApiResponse.endPosition"
+		$startUserValue=$userApiResponse.endPosition                
+		$postReturnCode = SendToLogA -EventsData $userApiResponse.users -EventsTable $LATable_DSUsers
+		if($postReturnCode -eq 200)
+		{
+			Write-Host ("{$userApiResponse.totalSetSize} users have been ingested into Azure Log Analytics Workspace Table {$LATable_DSUsers}")
+		}
+		Remove-Item $userApiResponse
+		Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey "part2" -RowKey "end_position" -property @{"uri"=$startUserValue} -UpdateExisting                           
+		Start-Sleep -Second 5
+	}
+	catch {
+		$int = 0
+		foreach($header in $_.Exception.Response.Headers){
+			if($header -eq "X-DocuSign-TraceToken"){ write-host "TraceToken : " $_.Exception.Response.Headers[$int]}
+			$int++
+		}
+		write-host "Error : $_.ErrorDetails.Message"
+		write-host "Command : $_.InvocationInfo.Line"   
+	}
+	 
+	Write-Output "Done."
+
 }
 catch {
 	$int = 0
@@ -310,113 +422,3 @@ catch {
 	write-host "Command : $_.InvocationInfo.Line"
 }
 
-#Setup uri Headers for requests to DSM API & User API
-$docuSignAPIHeaders = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-$docuSignAPIHeaders.Add("Content-Type", "application/json")
-$docuSignAPIHeaders.Add("Authorization", "Bearer $docuSignAccessToken")
-
-$StorageTable = Get-AzStorageTable -Name $storageAccountTableName -Context $storageAccountContext -ErrorAction Ignore
-if($null -eq $StorageTable.Name){  
-    New-AzStorageTable -Name $storageAccountTableName -Context $storageAccountContext
-    $docuSignTimeStampTbl = (Get-AzStorageTable -Name $storageAccountTableName -Context $storageAccountContext.Context).cloudTable    
-    Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey "part1" -RowKey "lastRunEndCursor" -property @{"uri"=""} -UpdateExisting
-    Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey "part2" -RowKey "end_position" -property @{"uri"="0"} -UpdateExisting
-}
-Else {
-    $docuSignTimeStampTbl = (Get-AzStorageTable -Name $storageAccountTableName -Context $storageAccountContext.Context).cloudTable
-}
-# retrieve the last execution values
-$lastExeEndCursor = Get-azTableRow -table $docuSignTimeStampTbl -partitionKey "part1" -RowKey "lastRunEndCursor" -ErrorAction Ignore
-$lastExeEndPos = Get-azTableRow -table $docuSignTimeStampTbl -partitionKey "part2" -RowKey "end_position" -ErrorAction Ignore
-$lastRunEndCursorValue = $lastExeEndCursor.uri
-$startUserValue = $lastExeEndPos.uri
-if ($startUserValue -gt 0){
-    $startUserValue = [int]$startUserValue + 1
-}
-
-$complete=$false    
-$iterations=0
-DO{
-    $iterations++	
-    try{
-        $docuSignMonitorAPI=$null
-        $monitorApiResponse = $null
-        $docuSignMonitorAPI = "https://${dsmHost}.docusign.net/api/v2.0/datasets/monitor/stream?cursor=${lastRunEndCursorValue}&limit=2000"
-        $monitorApiResponse = Invoke-RestMethod -Uri $docuSignMonitorAPI -Method 'GET' -Headers $docuSignAPIHeaders
-        
-        # Display the data
-        Write-Output "Iteration:$iterations"           
-
-        # Get the endCursor value from the response. This lets you resume
-        # getting records from the spot where this call left off
-        #Response from Invoke-RestMethod        
-        $currentRunEndCursorValue = $monitorApiResponse.endCursor            
-        Write-Output "currentRunEndCursorValue :$currentRunEndCursorValue"
-        Write-Output "Last run cursorValue : $lastRunEndCursorValue"
-            
-        if (![string]::IsNullOrEmpty($lastRunEndCursorValue))
-        {
-            # If the endCursor from the response is the same as the one that you already have,
-            # it means that you have reached the end of the records
-            if ($currentRunEndCursorValue.Substring(0, $currentRunEndCursorValue.LastIndexOf('_')) -eq $lastRunEndCursorValue.Substring(0, $lastRunEndCursorValue.LastIndexOf('_')))
-            {
-                Write-Output 'Current run endCursor & last run endCursor values are the same. This indicates that you have reached the end of your available records.'
-                $complete=$true
-            }
-        }
-        
-        if(!$complete){           
-            Write-Output "Updating the cursor value of $lastRunEndCursorValue to the new value of $currentRunEndCursorValue"
-            $lastRunEndCursorValue=$currentRunEndCursorValue                
-            $postReturnCode = SendToLogA -EventsData $monitorApiResponse.data -EventsTable $LATable_DSMAPI
-            if($postReturnCode -eq 200)
-            {
-                Write-Host ("{$monitorApiResponse.data.length} DocuSign Security Events have been ingested into Azure Log Analytics Workspace Table {$LATable_DSMAPI}")
-            }
-            Remove-Item $monitorApiResponse
-            Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey "part1" -RowKey "lastRunEndCursor" -property @{"uri"=$lastRunEndCursorValue} -UpdateExisting                           
-            Start-Sleep -Second 5
-        }        
-    }
-    catch{
-        $int = 0
-        foreach($header in $_.Exception.Response.Headers){
-            if($header -eq "X-DocuSign-TraceToken"){ write-host "TraceToken : " $_.Exception.Response.Headers[$int]}
-            $int++
-        }
-        write-host "Error : $_.ErrorDetails.Message"
-        write-host "Command : $_.InvocationInfo.Line"
-        $complete = $true
-    } 
-
-} While ($complete -eq $false )
-
-#users Export
-try{
-    $docuSignUsersAPI=$null
-    $userApiResponse = $null
-    $docuSignUsersAPI = "https://demo.docusign.net/restapi/v2.1/accounts/$DocuSignAccountID/users?additional_info=true&start_position=$startUserValue"
-    $userApiResponse = Invoke-RestMethod -Uri $docuSignUsersAPI -Method 'GET' -Headers $docuSignAPIHeaders
-
-    Write-Output "Updating the cursor value of $startUserValue to the new value of $userApiResponse.endPosition"
-    $startUserValue=$userApiResponse.endPosition                
-    $postReturnCode = SendToLogA -EventsData $userApiResponse.users -EventsTable $LATable_DSUsers
-    if($postReturnCode -eq 200)
-    {
-        Write-Host ("{$userApiResponse.totalSetSize} users have been ingested into Azure Log Analytics Workspace Table {$LATable_DSUsers}")
-    }
-    Remove-Item $userApiResponse
-    Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey "part2" -RowKey "end_position" -property @{"uri"=$startUserValue} -UpdateExisting                           
-    Start-Sleep -Second 5
-}
-catch {
-    $int = 0
-    foreach($header in $_.Exception.Response.Headers){
-        if($header -eq "X-DocuSign-TraceToken"){ write-host "TraceToken : " $_.Exception.Response.Headers[$int]}
-        $int++
-    }
-    write-host "Error : $_.ErrorDetails.Message"
-    write-host "Command : $_.InvocationInfo.Line"   
-}
- 
-Write-Output "Done."
