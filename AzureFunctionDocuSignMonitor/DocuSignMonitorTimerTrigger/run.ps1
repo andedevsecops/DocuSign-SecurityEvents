@@ -200,7 +200,7 @@ if($null -ne $checkBlob){
     $privateKeyPath = "$tempDir\DocuSignRSAPrivateKey.key"
 }
 else{
-    Write-Error "No DocuSignRSAPrivateKey.txt file, exiting"
+    Write-Error "No DocuSignRSAPrivateKey.key file, exiting"
     exit
 }
 
@@ -242,9 +242,7 @@ $encJwtPayLoad = [System.Convert]::ToBase64String($encJwtPayLoadBytes) -replace 
 $jwtToken = "$encJwtHeader.$encJwtPayLoad"
 
 $keyStream = [System.IO.File]::OpenRead($privateKeyPath)
-$keyReader = [PemUtils.PemReader]::new($keyStream)
-
-$rsaParameters = $keyReader.ReadRsaKey()
+$rsaParameters = [PemUtils.PemReader]::new($keyStream).ReadRsaKey()
 $rsa = [System.Security.Cryptography.RSA]::Create($rsaParameters)
 
 $tokenBytes = [System.Text.Encoding]::ASCII.GetBytes($jwtToken)
