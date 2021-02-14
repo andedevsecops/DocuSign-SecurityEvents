@@ -358,8 +358,9 @@ try {
 		$docuSignUsersAPI = "https://demo.docusign.net/restapi/v2.1/accounts/$DocuSignAccountID/users?additional_info=true&start_position=$startUserValue"
 		$userApiResponse = Invoke-RestMethod -Uri $docuSignUsersAPI -Method 'GET' -Headers $docuSignAPIHeaders
 
-		Write-Output "Updating the cursor value of $startUserValue to the new value of $userApiResponse.endPosition"
-		$startUserValue=$userApiResponse.endPosition                
+		$userEndPosition = $userApiResponse.endPosition
+		Write-Output "Updating the cursor value of $startUserValue to the new value of $userEndPosition"
+		$startUserValue=$userEndPosition                
 		$postReturnCode = SendToLogA -EventsData $userApiResponse.users -EventsTable $LATable_DSUsers
 		if($postReturnCode -eq 200)
 		{
