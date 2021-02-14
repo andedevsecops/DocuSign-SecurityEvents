@@ -176,27 +176,8 @@ Function SendToLogA ($eventsData, $eventsTable) {
     return $postLAStatus
 }
 
-Function LoadNugetDependencies ($nugetPackagePath) {
-	# Opening the nupkg file as a zip file in memory
-    Add-Type -Assembly 'System.IO.Compression.FileSystem'
-    $zip = [System.IO.Compression.ZipFile]::Open($nugetPackagePath, "Read")
-    # Create a memory stream to store the raw bytes
-    $memStream = [System.IO.MemoryStream]::new()
-    $reader = [System.IO.StreamReader]($zip.entries[2]).Open()
-    $reader.BaseStream.CopyTo($memStream)
-    # Saving the bytes from the memory stream as a byte array
-    [byte[]]$bytes = $memStream.ToArray()
-
-    # Load nuget assembly
-    [System.Reflection.Assembly]::Load($bytes)
-
-    # Disposing the used objects
-    $reader.Close()
-    $zip.Dispose()
-}
-
-LoadNugetDependencies -NugetPackagePath "C:\home\site\wwwroot\Modules\PemUtils.3.0.0.82\PemUtils.3.0.0.82.nupkg"
-LoadNugetDependencies -NugetPackagePath "C:\home\site\wwwroot\Modules\DerConverter.3.0.0.82\DerConverter.3.0.0.82.nupkg"
+[Reflection.Assembly]::LoadFile("C:\home\site\wwwroot\Modules\DerConverter.dll")
+[Reflection.Assembly]::LoadFile("C:\home\site\wwwroot\Modules\PemUtils.dll")
 
 If ($DocuSignEnvironment.ToLower() -eq "demo") {
     $jwtHost = "account-d"
