@@ -242,6 +242,8 @@ $encJwtPayLoad = [System.Convert]::ToBase64String($encJwtPayLoadBytes) -replace 
 $jwtToken = "$encJwtHeader.$encJwtPayLoad"
 
 $keyStream = [System.IO.File]::OpenRead($privateKeyPath)
+Add-Type -Path "C:\home\site\wwwroot\Modules\DerConverter.dll"
+Add-Type -Path "C:\home\site\wwwroot\Modules\PemUtils.dll"
 $rsaParameters = [PemUtils.PemReader]::new($keyStream).ReadRsaKey()
 $rsa = [System.Security.Cryptography.RSA]::Create($rsaParameters)
 
