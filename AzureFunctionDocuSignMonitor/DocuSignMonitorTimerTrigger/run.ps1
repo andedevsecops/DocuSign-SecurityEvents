@@ -176,8 +176,9 @@ Function SendToLogA ($eventsData, $eventsTable) {
     return $postLAStatus
 }
 
-[Reflection.Assembly]::LoadFile("C:\home\site\wwwroot\Modules\DerConverter.dll")
-[Reflection.Assembly]::LoadFile("C:\home\site\wwwroot\Modules\PemUtils.dll")
+#Load all .NET binaries in the folder
+Get-ChildItem -recurse "C:\home\site\wwwroot\Modules\"|Where-Object {($_.Extension -EQ ".dll")} | ForEach-Object { $AssemblyName=$_.FullName; Try {[Reflection.Assembly]::LoadFile($AssemblyName)} Catch{ "***ERROR*** Not .NET assembly: " + $AssemblyName}}
+
 
 If ($DocuSignEnvironment.ToLower() -eq "demo") {
     $jwtHost = "account-d"
