@@ -4,6 +4,4 @@
 @{    
 	'Az' = '5.*'
 	'AzTable' = '2.*'
-	'DerConverter' = '3.0.0.82'
-	'PemUtils' = '3.0.0.82'
 }
