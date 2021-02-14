@@ -1,0 +1,10 @@
+{
+  "frameworks": {
+    "net47":{
+      "dependencies": {
+        "DerConverter": "3.0.0.82",
+	"PemUtils": "3.0.0.82"
+      }
+    }
+   }
+}
