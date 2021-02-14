@@ -194,10 +194,10 @@ $apiVersion = "eSignature"
 $timestamp = [int][double]::Parse((Get-Date (Get-Date).ToUniversalTime() -UFormat %s))
 
 $storageAccountContext = New-AzStorageContext -ConnectionString $AzureWebJobsStorage
-$checkBlob = Get-AzStorageBlob -Blob DocuSignRSAPrivateKey.txt -Container $storageAccountContainer -Context $storageAccountContext
+$checkBlob = Get-AzStorageBlob -Blob "DocuSignRSAPrivateKey.key" -Container $storageAccountContainer -Context $storageAccountContext
 if($null -ne $checkBlob){
-    Get-AzStorageBlobContent -Blob DocuSignRSAPrivateKey.txt -Container $storageAccountContainer -Context $storageAccountContext -Destination "$tempDir\DocuSignRSAPrivateKey.txt" -Force
-    $privateKeyPath = "$tempDir\DocuSignRSAPrivateKey.txt"
+    Get-AzStorageBlobContent -Blob "DocuSignRSAPrivateKey.key" -Container $storageAccountContainer -Context $storageAccountContext -Destination "$tempDir\DocuSignRSAPrivateKey.key" -Force
+    $privateKeyPath = "$tempDir\DocuSignRSAPrivateKey.key"
 }
 else{
     Write-Error "No DocuSignRSAPrivateKey.txt file, exiting"
