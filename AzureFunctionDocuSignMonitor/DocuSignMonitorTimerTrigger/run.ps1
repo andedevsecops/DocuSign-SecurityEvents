@@ -42,7 +42,7 @@ $storageAccountContainer = "docusign-monitor"
 $storageAccountTableName = "docusignexecutions"
 $LATable_DSMAPI = $env:LATable_DSMAPI
 $LATable_DSUsers = $env:LATable_Users
-$tempDir=$env:TMPDIR
+$tempDir = $env:TMPDIR
 #The AzureTenant variable is used to specify other cloud environments like Azure Gov(.us) etc.,
 $AzureTenant = $env:AZURE_TENANT
 # Flag to turn on/off DocuSign Users information into LA Workspace Table
@@ -369,7 +369,7 @@ try {
 				Write-Host ("{$userApiResponse.totalSetSize} users have been ingested into Azure Log Analytics Workspace Table {$LATable_DSUsers}")
 			}
 			Remove-Item $userApiResponse
-			Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey "part2" -RowKey "endUserPosition" -property @{"endUserPositionValue"=$startUserValue} -UpdateExisting                           
+			Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey "part2" -RowKey "endUserPosition" -property @{"endUserPositionValue"=$startUserValue.ToString()} -UpdateExisting                           
 			Start-Sleep -Second 5
 		}
 		catch {
