@@ -206,8 +206,8 @@
             "WorkspaceId": "[parameters('WorkspaceId')]",
             "WorkspaceKey": "[concat('@Microsoft.KeyVault(SecretUri=', reference(variables('LogAnalyticsWorkspaceKey')).secretUriWithVersion, ')')]",
 			"Schedule": "0 */10 * * * *",
-			"LATable_DSMAPI": "DocuSignSecurityEvents",
-			"$LATable_DSUsers": "DocuSignUsers",
+			"LATableDSMAPI": "DocuSignSecurityEvents",
+			"LATableDSUsers": "DocuSignUsers",
 			"DocuSignEnvironment": "Developer",
 			"NeedDocuSignUsers":"True",
             "WEBSITE_RUN_FROM_PACKAGE": "https://github.com/andedevsecops/DocuSign-SecurityEvents/blob/main/AzureFunctionDocuSignMonitor/DocuSignMonitorTimerTrigger.zip?raw=true"

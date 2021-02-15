@@ -40,8 +40,8 @@ $workspaceId = $env:WorkspaceId
 $workspaceKey = $env:WorkspaceKey
 $storageAccountContainer = "docusign-monitor"
 $storageAccountTableName = "docusignexecutions"
-$LATable_DSMAPI = $env:LATable_DSMAPI
-$LATable_DSUsers = $env:LATable_Users
+$LATableDSMAPI = $env:LATableDSMAPI
+$LATableDSUsers = $env:LATableUsers
 $tempDir = $env:TMPDIR
 #The AzureTenant variable is used to specify other cloud environments like Azure Gov(.us) etc.,
 $AzureTenant = $env:AZURE_TENANT
@@ -240,28 +240,36 @@ $encJwtPayLoad = [System.Convert]::ToBase64String($encJwtPayLoadBytes) -replace 
 
 $jwtToken = "$encJwtHeader.$encJwtPayLoad"
 
-Add-Type -Path "C:\home\site\wwwroot\Modules\DerConverter.dll"
-Add-Type -Path "C:\home\site\wwwroot\Modules\PemUtils.dll"
+try{
+	Add-Type -Path "C:\home\site\wwwroot\Modules\DerConverter.dll"
+	Add-Type -Path "C:\home\site\wwwroot\Modules\PemUtils.dll"
 
-$keyStream = [System.IO.File]::OpenRead($privateKeyPath)
-$rsaParameters = [PemUtils.PemReader]::new($keyStream).ReadRsaKey()
-$rsa = [System.Security.Cryptography.RSA]::Create($rsaParameters)
+	$keyStream = [System.IO.File]::OpenRead($privateKeyPath)
+	$rsaParameters = [PemUtils.PemReader]::new($keyStream).ReadRsaKey()
+	$rsa = [System.Security.Cryptography.RSA]::Create($rsaParameters)
 
-$tokenBytes = [System.Text.Encoding]::ASCII.GetBytes($jwtToken)
-$signedToken = $rsa.SignData(
-    $tokenBytes,
-    [System.Security.Cryptography.HashAlgorithmName]::SHA256,
-    [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+	$tokenBytes = [System.Text.Encoding]::ASCII.GetBytes($jwtToken)
+	$signedToken = $rsa.SignData(
+		$tokenBytes,
+		[System.Security.Cryptography.HashAlgorithmName]::SHA256,
+		[System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
 
-$signedBase64Token = [System.Convert]::ToBase64String($signedToken) -replace '\+', '-' -replace '/', '_' -replace '='
+	$signedBase64Token = [System.Convert]::ToBase64String($signedToken) -replace '\+', '-' -replace '/', '_' -replace '='
 
-$jwtToken = "$encJwtHeader.$encJwtPayLoad.$signedBase64Token"
+	$jwtToken = "$encJwtHeader.$encJwtPayLoad.$signedBase64Token"
 
-$keyStream.Close()
-$keyStream.Dispose()
+	$keyStream.Close()
+	$keyStream.Dispose()
+}
+catch {
+	Write-Output "Please check you have DerConverter.dll and PemUtils.dll under C:\home\site\wwwroot\Modules"
+	$keyStream.Close()
+	$keyStream.Dispose()
+}
 
 # Step 2. Obtain the access token
 try {
+	Write-Output "Obtaining DocuSign access token"
     $authorizationEndpoint = "https://$jwtHost.docusign.com/oauth/"    
     $tokenResponse = Invoke-WebRequest `
         -Uri "$authorizationEndpoint/token" `
@@ -302,6 +310,7 @@ try {
 			$docuSignMonitorAPI=$null
 			$monitorApiResponse = $null
 			$docuSignMonitorAPI = "https://$dsmHost.docusign.net/api/v2.0/datasets/monitor/stream?cursor=${lastRunEndCursorValue}&limit=2000"
+			Write-Output "Calling DocuSign Monitor API"
 			$monitorApiResponse = Invoke-RestMethod -Uri $docuSignMonitorAPI -Method 'GET' -Headers $docuSignAPIHeaders
 			
 			# Display the data
@@ -327,11 +336,14 @@ try {
 			
 			if(!$complete){           
 				Write-Output "Updating the cursor value of $lastRunEndCursorValue to the new value of $currentRunEndCursorValue"
-				$lastRunEndCursorValue=$currentRunEndCursorValue                
-				$postReturnCode = SendToLogA -EventsData $monitorApiResponse.data -EventsTable $LATable_DSMAPI
+				$lastRunEndCursorValue=$currentRunEndCursorValue  
+				$securityEvents = $monitorApiResponse.data
+				$securityEventsCount = $monitorApiResponse.data.length
+				$postReturnCode = SendToLogA -EventsData $securityEvents -EventsTable $LATableDSMAPI
+				$securityEventsCount = $monitorApiResponse.data.length
 				if($postReturnCode -eq 200)
 				{
-					Write-Host ("{$monitorApiResponse.data.length} DocuSign Security Events have been ingested into Azure Log Analytics Workspace Table {$LATable_DSMAPI}")
+					Write-Output ("$securityEventsCount - DocuSign Security Events have been ingested into Azure Log Analytics Workspace Table --> $LATableDSMAPI")
 				}
 				Remove-Item $monitorApiResponse
 				Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey "part1" -RowKey "lastRunEndCursor" -property @{"lastCursorValue"=$lastRunEndCursorValue} -UpdateExisting                           
@@ -353,24 +365,28 @@ try {
 	
 	#users Export
 	if ($DocuSignUsersIngestion.ToLower() -eq "true"){		
-		Write-Host "Ingesting DocuSign Users information to {$LATable_DSUsers}"
+		Write-Host "Ingesting DocuSign Users information to $LATableDSUsers"
 		try{
-			$docuSignUsersAPI=$null
+			$docuSignUsersAPI = $null
 			$userApiResponse = $null
 			$docuSignUsersAPI = "https://demo.docusign.net/restapi/v2.1/accounts/$DocuSignAccountID/users?additional_info=true&start_position=$startUserValue"
+			Write-Output "Calling DocuSign Users API"
 			$userApiResponse = Invoke-RestMethod -Uri $docuSignUsersAPI -Method 'GET' -Headers $docuSignAPIHeaders
 
 			$userEndPosition = $userApiResponse.endPosition
+			$docuSignUsers = $userApiResponse.users
+            $totalUsers = $userApiResponse.totalSetSize  
+			Write-Output "Total DocuSign Users $totalUsers"
+			
 			Write-Output "Updating endPosition for users value $startUserValue to the new value of $userEndPosition"
 			$startUserValue=$userEndPosition                
-			$postReturnCode = SendToLogA -EventsData $userApiResponse.users -EventsTable $LATable_DSUsers
+			$postReturnCode = SendToLogA -EventsData $docuSignUsers -EventsTable $LATableDSUsers
 			if($postReturnCode -eq 200)
 			{
-				Write-Host ("{$userApiResponse.totalSetSize} users have been ingested into Azure Log Analytics Workspace Table {$LATable_DSUsers}")
+				Write-Host ("$totalUsers users have been ingested into Azure Log Analytics Workspace Table $LATableDSUsers")
 			}
 			Remove-Item $userApiResponse
-			Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey "part2" -RowKey "endUserPosition" -property @{"endUserPositionValue"=$startUserValue.ToString()} -UpdateExisting                           
-			Start-Sleep -Second 5
+			Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey "part2" -RowKey "endUserPosition" -property @{"endUserPositionValue"=$startUserValue.ToString()} -UpdateExisting			
 		}
 		catch {
 			$int = 0
