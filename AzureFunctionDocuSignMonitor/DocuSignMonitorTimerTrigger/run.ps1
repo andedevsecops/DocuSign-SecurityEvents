@@ -41,7 +41,7 @@ $workspaceKey = $env:WorkspaceKey
 $storageAccountContainer = "docusign-monitor"
 $storageAccountTableName = "docusignexecutions"
 $LATableDSMAPI = $env:LATableDSMAPI
-$LATableDSUsers = $env:LATableUsers
+$LATableDSUsers = $env:LATableDSUsers
 $tempDir = $env:TMPDIR
 #The AzureTenant variable is used to specify other cloud environments like Azure Gov(.us) etc.,
 $AzureTenant = $env:AZURE_TENANT
