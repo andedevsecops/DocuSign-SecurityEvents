@@ -45,6 +45,8 @@ $LATable_DSUsers = $env:LATable_Users
 $tempDir=$env:TMPDIR
 #The AzureTenant variable is used to specify other cloud environments like Azure Gov(.us) etc.,
 $AzureTenant = $env:AZURE_TENANT
+# Flag to turn on/off DocuSign Users information into LA Workspace Table
+$DocuSignUsersIngestion = $env:NeedDocuSignUsers
 
 $currentStartTime = (get-date).ToUniversalTime() | get-date  -Format yyyy-MM-ddTHH:mm:ss:ffffffZ
 
@@ -176,11 +178,8 @@ Function SendToLogA ($eventsData, $eventsTable) {
     return $postLAStatus
 }
 
-#Load all .NET binaries in the folder
-Get-ChildItem -recurse "C:\home\site\wwwroot\Modules\"|Where-Object {($_.Extension -EQ ".dll")} | ForEach-Object { $AssemblyName=$_.FullName; Try {[Reflection.Assembly]::LoadFile($AssemblyName)} Catch{ "***ERROR*** Not .NET assembly: " + $AssemblyName}}
 
-
-If ($DocuSignEnvironment.ToLower() -eq "demo") {
+If ($DocuSignEnvironment.ToLower() -eq "developer") {
     $jwtHost = "account-d"
     $dsmHost = "lens-d"
 } 
@@ -241,9 +240,10 @@ $encJwtPayLoad = [System.Convert]::ToBase64String($encJwtPayLoadBytes) -replace 
 
 $jwtToken = "$encJwtHeader.$encJwtPayLoad"
 
-$keyStream = [System.IO.File]::OpenRead($privateKeyPath)
 Add-Type -Path "C:\home\site\wwwroot\Modules\DerConverter.dll"
 Add-Type -Path "C:\home\site\wwwroot\Modules\PemUtils.dll"
+
+$keyStream = [System.IO.File]::OpenRead($privateKeyPath)
 $rsaParameters = [PemUtils.PemReader]::new($keyStream).ReadRsaKey()
 $rsa = [System.Security.Cryptography.RSA]::Create($rsaParameters)
 
@@ -279,19 +279,19 @@ try {
 	if($null -eq $StorageTable.Name){  
 		New-AzStorageTable -Name $storageAccountTableName -Context $storageAccountContext
 		$docuSignTimeStampTbl = (Get-AzStorageTable -Name $storageAccountTableName -Context $storageAccountContext.Context).cloudTable    
-		Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey "part1" -RowKey "lastRunEndCursor" -property @{"uri"=""} -UpdateExisting
-		Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey "part2" -RowKey "end_position" -property @{"uri"="0"} -UpdateExisting
+		Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey "part1" -RowKey "lastRunEndCursor" -property @{"lastCursorValue"=""} -UpdateExisting
+		Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey "part2" -RowKey "endUserPosition" -property @{"endUserPositionValue"=""} -UpdateExisting
 	}
 	Else {
 		$docuSignTimeStampTbl = (Get-AzStorageTable -Name $storageAccountTableName -Context $storageAccountContext.Context).cloudTable
 	}
 	# retrieve the last execution values
 	$lastExeEndCursor = Get-azTableRow -table $docuSignTimeStampTbl -partitionKey "part1" -RowKey "lastRunEndCursor" -ErrorAction Ignore
-	$lastExeEndPos = Get-azTableRow -table $docuSignTimeStampTbl -partitionKey "part2" -RowKey "end_position" -ErrorAction Ignore
-	$lastRunEndCursorValue = $lastExeEndCursor.uri
-	$startUserValue = $lastExeEndPos.uri
+	$lastExeEndPos = Get-azTableRow -table $docuSignTimeStampTbl -partitionKey "part2" -RowKey "endUserPosition" -ErrorAction Ignore
+	$lastRunEndCursorValue = $lastExeEndCursor.lastCursorValue
+	$startUserValue = [int]$lastExeEndPos.endUserPositionValue
 	if ($startUserValue -gt 0){
-		$startUserValue = [int]$startUserValue + 1
+		$startUserValue = $startUserValue + 1
 	}
 
 	$complete=$false    
@@ -301,7 +301,7 @@ try {
 		try{
 			$docuSignMonitorAPI=$null
 			$monitorApiResponse = $null
-			$docuSignMonitorAPI = "https://${dsmHost}.docusign.net/api/v2.0/datasets/monitor/stream?cursor=${lastRunEndCursorValue}&limit=2000"
+			$docuSignMonitorAPI = "https://$dsmHost.docusign.net/api/v2.0/datasets/monitor/stream?cursor=${lastRunEndCursorValue}&limit=2000"
 			$monitorApiResponse = Invoke-RestMethod -Uri $docuSignMonitorAPI -Method 'GET' -Headers $docuSignAPIHeaders
 			
 			# Display the data
@@ -334,7 +334,7 @@ try {
 					Write-Host ("{$monitorApiResponse.data.length} DocuSign Security Events have been ingested into Azure Log Analytics Workspace Table {$LATable_DSMAPI}")
 				}
 				Remove-Item $monitorApiResponse
-				Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey "part1" -RowKey "lastRunEndCursor" -property @{"uri"=$lastRunEndCursorValue} -UpdateExisting                           
+				Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey "part1" -RowKey "lastRunEndCursor" -property @{"lastCursorValue"=$lastRunEndCursorValue} -UpdateExisting                           
 				Start-Sleep -Second 5
 			}        
 		}
@@ -350,36 +350,39 @@ try {
 		} 
 
 	} While ($complete -eq $false )
-
+	
 	#users Export
-	try{
-		$docuSignUsersAPI=$null
-		$userApiResponse = $null
-		$docuSignUsersAPI = "https://demo.docusign.net/restapi/v2.1/accounts/$DocuSignAccountID/users?additional_info=true&start_position=$startUserValue"
-		$userApiResponse = Invoke-RestMethod -Uri $docuSignUsersAPI -Method 'GET' -Headers $docuSignAPIHeaders
+	if ($DocuSignUsersIngestion.ToLower() -eq "true"){		
+		Write-Host "Ingesting DocuSign Users information to {$LATable_DSUsers}"
+		try{
+			$docuSignUsersAPI=$null
+			$userApiResponse = $null
+			$docuSignUsersAPI = "https://demo.docusign.net/restapi/v2.1/accounts/$DocuSignAccountID/users?additional_info=true&start_position=$startUserValue"
+			$userApiResponse = Invoke-RestMethod -Uri $docuSignUsersAPI -Method 'GET' -Headers $docuSignAPIHeaders
 
-		$userEndPosition = $userApiResponse.endPosition
-		Write-Output "Updating the cursor value of $startUserValue to the new value of $userEndPosition"
-		$startUserValue=$userEndPosition                
-		$postReturnCode = SendToLogA -EventsData $userApiResponse.users -EventsTable $LATable_DSUsers
-		if($postReturnCode -eq 200)
-		{
-			Write-Host ("{$userApiResponse.totalSetSize} users have been ingested into Azure Log Analytics Workspace Table {$LATable_DSUsers}")
+			$userEndPosition = $userApiResponse.endPosition
+			Write-Output "Updating endPosition for users value $startUserValue to the new value of $userEndPosition"
+			$startUserValue=$userEndPosition                
+			$postReturnCode = SendToLogA -EventsData $userApiResponse.users -EventsTable $LATable_DSUsers
+			if($postReturnCode -eq 200)
+			{
+				Write-Host ("{$userApiResponse.totalSetSize} users have been ingested into Azure Log Analytics Workspace Table {$LATable_DSUsers}")
+			}
+			Remove-Item $userApiResponse
+			Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey "part2" -RowKey "endUserPosition" -property @{"endUserPositionValue"=$startUserValue} -UpdateExisting                           
+			Start-Sleep -Second 5
 		}
-		Remove-Item $userApiResponse
-		Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey "part2" -RowKey "end_position" -property @{"uri"=$startUserValue} -UpdateExisting                           
-		Start-Sleep -Second 5
+		catch {
+			$int = 0
+			foreach($header in $_.Exception.Response.Headers){
+				if($header -eq "X-DocuSign-TraceToken"){ write-host "TraceToken : " $_.Exception.Response.Headers[$int]}
+				$int++
+			}
+			write-host "Error : $_.ErrorDetails.Message"
+			write-host "Command : $_.InvocationInfo.Line"   
+		}	
 	}
-	catch {
-		$int = 0
-		foreach($header in $_.Exception.Response.Headers){
-			if($header -eq "X-DocuSign-TraceToken"){ write-host "TraceToken : " $_.Exception.Response.Headers[$int]}
-			$int++
-		}
-		write-host "Error : $_.ErrorDetails.Message"
-		write-host "Command : $_.InvocationInfo.Line"   
-	}
-	 
+	
 	Write-Output "Done."
 
 }

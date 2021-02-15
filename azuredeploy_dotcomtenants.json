@@ -208,7 +208,8 @@
 			"Schedule": "0 */10 * * * *",
 			"LATable_DSMAPI": "DocuSignSecurityEvents",
 			"$LATable_DSUsers": "DocuSignUsers",
-			"DocuSignEnvironment": "Demo",
+			"DocuSignEnvironment": "Developer",
+			"NeedDocuSignUsers":"True",
             "WEBSITE_RUN_FROM_PACKAGE": "https://github.com/andedevsecops/DocuSign-SecurityEvents/blob/main/AzureFunctionDocuSignMonitor/DocuSignMonitorTimerTrigger.zip?raw=true"
           }
         }
