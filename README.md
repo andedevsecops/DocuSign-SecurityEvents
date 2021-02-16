@@ -10,20 +10,31 @@ Above API's resumes getting records from the spot where the previous call left o
 
 ## **Pre-requisites**
 1. Login to your DocuSign Account  
+
 2. To create new "Integration Key", click on "Add & Integration Key"  
-   ![IntegrationKey](./images/2IntegrationKey.png)
+
+   ![IntegrationKey](./images/2IntegrationKey.png)  
+   
 3. You’ll see a dialog box to enter your app name. Give your app a short, but descriptive name, such as "Azure Sentinel Integration"  
+
 4. Select ADD to add your app. Your app is automatically assigned an integration key (GUID) value that cannot be changed, as shown here  
-   ![AppAzSentinelIntegration](./images/AppAzSentinelIntegration.png)
+
+   ![AppAzSentinelIntegration](./images/AppAzSentinelIntegration.png)  
+   
 5. Under Authentication, Select "Authorization Code Grant" as Azure Sentinel Data Connector uses JWT Grant Flow to get "Access Token" to communicate with DocuSign Monitor API and Users API  
+ 
 6. Select ADD SECRET KEY, which creates a new, automatically generated GUID value that represents a secret key  
    **Note**  
    Copy the secret key to a safe location by selecting the copy icon shown in the image.After your integration settings are saved, secret keys are masked for security reasons and cannot be revealed again. If you don’t copy them first, your only option will be to delete the secret key in question and add a new one.  
+   
 7. Set a redirect URI for your app which DocuSign will redirect the browser after authentication when using the Authorization Code Grant.  
+
 8. Under Additional Settings, Select "ADD URI", which displays a new text box for you to enter the URI add in the following **redirect uri** `http://localhost:8080/authorization-code/callback` where your authenticated users will be redirected.  
+
 9. RSA key pair is required to use the JWT Grant authentication flow. To generate navigate to Service Integration, Click on "ADD RSA KEYPAIR", which creates a new, automatically generated GUID value that represents the ID for the private and public key pair
    **Note:**  
    You are only able to view your RSA key pair immediately after creating it, so be sure to save it or record it to a safe place. To ensure the key pair’s security, there is no way to go back and view it again after you close the window.  
+
 10. **Important** Copy the **private_key** into the file **"DocuSignRSAPrivateKey.key"**  If you don’t copy them first, your only option will be to delete the RSA key pair and add a new one. Select OK, then select SAVE.  
    ![RSAKeyPair](./images/RSAKeyPair.png)
 
@@ -61,6 +72,7 @@ It’s only one-time step to collect consent
    **Note**  
    Best practice : Create new Resource Group while deploying - all the resources of your custom Data connector will reside in the newly created Resource 
    Group
+   
 3. Enter the following value in the ARM template deployment
 	```
 	"DocuSign Integration Key": DocuSign App Integration Key
@@ -71,7 +83,8 @@ It’s only one-time step to collect consent
 	```
 	
 ## Post Deployment Steps
-1. **Important** After successful deployment, Navigate to Resource Group and search for storage account, named - `docusign<<uniqueid>>` and upload previously saved file **"DocuSignRSAPrivateKey.key"** to "docusign-monitor" container  	
+1. **Important**  
+   After successful deployment, Navigate to Resource Group and search for storage account, named - `docusign<<uniqueid>>` and upload previously saved file **"DocuSignRSAPrivateKey.key"** to "docusign-monitor" container  	
 
 2. DocuSignIntegrationKey, DocuSignAdminUserGUID, DocuSignAccountID and Workspace Key will be placed as "Secrets" in the Azure KeyVault `docusignkv<<uniqueid>>` with only Azure Function access policy. If you want to see/update these secrets,
 
