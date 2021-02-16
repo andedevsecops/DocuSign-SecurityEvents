@@ -5,7 +5,8 @@ DocuSign-SecurityEvents Data connector ingests
 	1. Security Events for your DocuSign account into Azure Log Analytics Workspace using DocuSign Monitor REST API
 	2. DocuSign Account Users into Azure Log Analytics Workspace using DocuSign Users REST API
 
-Following are the configuration steps to deploy Data connector.
+**Note**  
+Above API's resumes getting records from the spot where the previous call left off to avoid duplication of records in DocuSignSecurityEvents_CL and DocuSignUsers_CL Log Analytics Workspace custom tables
 
 ## **Pre-requisites**
 1. Login to your DocuSign Account  
@@ -28,9 +29,11 @@ Following are the configuration steps to deploy Data connector.
 
 ### Request Application Consent
 
-1. Run Application_Consent.ps1 and provide values for the following  
-   `DocuSignEnvironment: Enter value as Developer or Production`  
-   `IntegrationKey: Enter DocuSign App Integration Key"  
+1. Run **[Application_Consent.ps1.](./Application_Consent.ps1)** and provide values for the following  
+   ```
+   DocuSignEnvironment: Enter value as Developer or Production  
+   IntegrationKey: Enter DocuSign App Integration Key  
+   ```
  
 2. Script will construct a URI value matching the "DocuSignEnvironment". This path differs depending on whether your app is in the development environment or in production.  
    For the developer demo environment, the base URI is https://account-d.docusign.com/oauth/auth  
@@ -46,13 +49,13 @@ It’s only one-time step to collect consent
 
 
 ## Configuration Steps to Deploy Function App
-1. Click on Deploy to Azure/Deploy to Azure Gov button
+1. Click on Deploy to Azure/Deploy to Azure Gov button  
    <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fandedevsecops%2FDocuSign-SecurityEvents%2Fmain%2Fazuredeploy_dotcomtenants.json" target="_blank">
     <img src="https://aka.ms/deploytoazurebutton"/>
 	</a>
 	<a href="https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fandedevsecops%2FDocuSign-SecurityEvents%2Fmain%2Fazuredeploy_dotgovtenants.json" target="_blank">
 	<img src="https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazuregov.png"/>
-	</a>
+	</a>  
 
 2. Select the preferred **Subscription**, **Resource Group** and **Location**  
    **Note**  
