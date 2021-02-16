@@ -53,7 +53,7 @@ $currentStartTime = (get-date).ToUniversalTime() | get-date  -Format yyyy-MM-ddT
 
 # Returning if the Log Analytics Uri is in incorrect format.
 # Sample format supported: https://" + $customerId + ".ods.opinsights.azure.com
-if($LogAnalyticsUri -notmatch 'https:\/\/([\w\-]+)\.ods\.opinsights\.azure.([\w\.]+)')
+if($LogAnalyticsUri.Trim() -notmatch 'https:\/\/([\w\-]+)\.ods\.opinsights\.azure.([a-zA-Z\.]+)$')
 {
     Write-Error -Message "DocuSign-SecurityEvents: Invalid Log Analytics Uri." -ErrorAction Stop
 }
@@ -131,14 +131,14 @@ Function Write-OMSLogfile {
             -method $method `
             -contentType $contentType `
             -resource $resource
-        $LogAnalyticsUri = $LogAnalyticsUri + $resource + "?api-version=2016-04-01"
+        $LogAnalyticsUri = $LogAnalyticsUri.Trim() + $resource + "?api-version=2016-04-01"
         $headers = @{
             "Authorization"        = $signature;
             "Log-Type"             = $type;
             "x-ms-date"            = $rfc1123date
             "time-generated-field" = $dateTime
         }
-        $response = Invoke-WebRequest -Uri $LogAnalyticsUri -Method $method -ContentType $contentType -Headers $headers -Body $Body -UseBasicParsing
+        $response = Invoke-WebRequest -Uri $LogAnalyticsUri.Trim() -Method $method -ContentType $contentType -Headers $headers -Body $Body -UseBasicParsing
         Write-Verbose -message ('Post Function Return Code ' + $response.statuscode)
         return $response.statuscode
     }   
