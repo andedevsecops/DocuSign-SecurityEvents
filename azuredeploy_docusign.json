@@ -23,7 +23,7 @@
         "description": "Specifies DocuSign Admin User GUID"
       }
     },
-	"DocuSignAccountID": {
+	"DocuSignAccountAPIID": {
       "defaultValue": "Enter the DocuSign Account ID",
       "type": "string",
       "metadata": {
@@ -51,7 +51,7 @@
 	"KeyVaultName": "[substring(variables('FunctionName'), 0, 22)]",
     "DocuSignIntegrationKey": "DocuSignIntegrationKey",
 	"DocuSignAdminUserGUID" : "DocuSignAdminUserGUID",
-	"DocuSignAccountID" : "DocuSignAccountID",
+	"DocuSignAccountAPIID" : "DocuSignAccountAPIID",
     "LogAnalyticsWorkspaceKey": "LogAnalyticsWorkspaceKey",
     "StorageContainerName": "docusign-monitor",
 	"StorageSuffix":"[environment().suffixes.storage]",
@@ -192,7 +192,7 @@
             "[resourceId('Microsoft.KeyVault/vaults/', variables('KeyVaultName'))]",
             "[resourceId('Microsoft.KeyVault/vaults/secrets', variables('KeyVaultName'), variables('DocuSignIntegrationKey'))]",            
 			"[resourceId('Microsoft.KeyVault/vaults/secrets', variables('KeyVaultName'), variables('DocuSignAdminUserGUID'))]",            
-			"[resourceId('Microsoft.KeyVault/vaults/secrets', variables('KeyVaultName'), variables('DocuSignAccountID'))]",            
+			"[resourceId('Microsoft.KeyVault/vaults/secrets', variables('KeyVaultName'), variables('DocuSignAccountAPIID'))]",            
             "[resourceId('Microsoft.KeyVault/vaults/secrets', variables('KeyVaultName'), variables('LogAnalyticsWorkspaceKey'))]"
           ],
           "properties": {
@@ -205,7 +205,7 @@
             "WEBSITE_CONTENTSHARE": "[toLower(variables('FunctionName'))]",
             "DocuSignIntegrationKey": "[concat('@Microsoft.KeyVault(SecretUri=', reference(variables('DocuSignIntegrationKey')).secretUriWithVersion, ')')]",
 			"DocuSignAdminUserGUID": "[concat('@Microsoft.KeyVault(SecretUri=', reference(variables('DocuSignAdminUserGUID')).secretUriWithVersion, ')')]",
-			"DocuSignAccountID": "[concat('@Microsoft.KeyVault(SecretUri=', reference(variables('DocuSignAccountID')).secretUriWithVersion, ')')]",            
+			"DocuSignAccountAPIID": "[concat('@Microsoft.KeyVault(SecretUri=', reference(variables('DocuSignAccountAPIID')).secretUriWithVersion, ')')]",            
             "WorkspaceId": "[parameters('WorkspaceId')]",
             "WorkspaceKey": "[concat('@Microsoft.KeyVault(SecretUri=', reference(variables('LogAnalyticsWorkspaceKey')).secretUriWithVersion, ')')]",
 			"Schedule": "0 */10 * * * *",
@@ -283,12 +283,12 @@
 		{
           "type": "secrets",
           "apiVersion": "2016-10-01",
-          "name": "[variables('DocuSignAccountID')]",
+          "name": "[variables('DocuSignAccountAPIID')]",
           "dependsOn": [
             "[resourceId('Microsoft.KeyVault/vaults/', variables('KeyVaultName'))]"
           ],
           "properties": {
-            "value": "[parameters('DocuSignAccountID')]",
+            "value": "[parameters('DocuSignAccountAPIID')]",
             "contentType": "string",
             "attributes": {
               "enabled": true

@@ -37,7 +37,7 @@ if ($env:MSI_SECRET -and (Get-Module -ListAvailable Az.Accounts)){
 $AzureWebJobsStorage = $env:AzureWebJobsStorage
 $DocuSignIntegrationKey = $env:DocuSignIntegrationKey
 $DocuSignAdminUserGUID = $env:DocuSignAdminUserGUID
-$DocuSignAccountID = $env:DocuSignAccountID
+$DocuSignAccountAPIID = $env:DocuSignAccountAPIID
 $DocuSignEnvironment = $env:DocuSignEnvironment
 $workspaceId = $env:WorkspaceId
 $workspaceKey = $env:WorkspaceKey
@@ -377,7 +377,7 @@ try {
 		try{
 			$docuSignUsersAPI = $null
 			$userApiResponse = $null
-			$docuSignUsersAPI = "https://demo.docusign.net/restapi/v2.1/accounts/$DocuSignAccountID/users?additional_info=true&start_position=$startUserValue"
+			$docuSignUsersAPI = "https://demo.docusign.net/restapi/v2.1/accounts/$DocuSignAccountAPIID/users?additional_info=true&start_position=$startUserValue"
 			Write-Output "Calling DocuSign Users API"
 			$userApiResponse = Invoke-RestMethod -Uri $docuSignUsersAPI -Method 'GET' -Headers $docuSignAPIHeaders
 

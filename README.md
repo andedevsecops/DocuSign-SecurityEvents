@@ -75,7 +75,7 @@ It’s only one-time step to collect consent
 	```
 	"DocuSign Integration Key": DocuSign App Integration Key
 	"DocuSignAdminUserGUID" : Admin User Name GUID
-	"DocuSignAccountID" : DocuSign Account ID
+	"DocuSignAccountAPIID" : DocuSign Account API ID
 	"Workspace Id": Azure Log Analytics Workspace Id​
 	"Workspace Key": Azure Log Analytics Workspace Key
 	```
