@@ -1,34 +1,58 @@
 # Ingest DocuSign Security Events
 Author: Sreedhar Ande
 
-DocuSign-SecurityEvents Data connector ingests security events for your DocuSign account into Azure Log Analytics Workspace using DocuSign Monitor REST API
+DocuSign-SecurityEvents Data connector ingests 
+	1. Security Events for your DocuSign account into Azure Log Analytics Workspace using DocuSign Monitor REST API
+	2. DocuSign Account Users into Azure Log Analytics Workspace using DocuSign Users REST API
 
 Following are the configuration steps to deploy Data connector.
 
 ## **Pre-requisites**
-1. Obtain DocuSign OAuth Token  
-   Option #1  
-   DocuSign OAuth Token is required. See the documentation to obtain https://developers.docusign.com/platform/auth/jwt/jwt-get-token/
+1. Login to your DocuSign Account  
+2. To create new "Integration Key", click on "Add & Integration Key"  
+   ![IntegrationKey](./images/2IntegrationKey.png)
+3. You’ll see a dialog box to enter your app name. Give your app a short, but descriptive name, such as "Azure Sentinel Integration"  
+4. Select ADD to add your app. Your app is automatically assigned an integration key (GUID) value that cannot be changed, as shown here  
+   ![AppAzSentinelIntegration](./images/AppAzSentinelIntegration.png)
+5. Under Authentication, Select "Authorization Code Grant" as Azure Sentinel Data Connector uses JWT Grant Flow to get "Access Token" to communicate with DocuSign Monitor API and Users API  
+6. Select ADD SECRET KEY, which creates a new, automatically generated GUID value that represents a secret key  
+   **Note**  
+   Copy the secret key to a safe location by selecting the copy icon shown in the image.After your integration settings are saved, secret keys are masked for security reasons and cannot be revealed again. If you don’t copy them first, your only option will be to delete the secret key in question and add a new one.  
+7. Set a redirect URI for your app which DocuSign will redirect the browser after authentication when using the Authorization Code Grant.  
+8. Under Additional Settings, Select "ADD URI", which displays a new text box for you to enter the URI add in the following **redirect uri** `http://localhost:8080/authorization-code/callback` where your authenticated users will be redirected.  
+9. RSA key pair is required to use the JWT Grant authentication flow. To generate navigate to Service Integration, Click on "ADD RSA KEYPAIR", which creates a new, automatically generated GUID value that represents the ID for the private and public key pair
+   **Note:**  
+   You are only able to view your RSA key pair immediately after creating it, so be sure to save it or record it to a safe place. To ensure the key pair’s security, there is no way to go back and view it again after you close the window.  
+10. **Important** Copy the **private_key** into the file **"DocuSignRSAPrivateKey.key"**  If you don’t copy them first, your only option will be to delete the RSA key pair and add a new one. Select OK, then select SAVE.  
+   ![RSAKeyPair](./images/RSAKeyPair.png)
+
+### Request Application Consent
+
+1. Run Application_Consent.ps1 and provide values for the following  
+   `DocuSignEnvironment: Enter value as Developer or Production`  
+   `IntegrationKey: Enter DocuSign App Integration Key"  
  
+2. Script will construct a URI value matching the "DocuSignEnvironment". This path differs depending on whether your app is in the development environment or in production.  
+   For the developer demo environment, the base URI is https://account-d.docusign.com/oauth/auth  
+   For the production platform, the base URI is https://account.docusign.com/oauth/auth  
 
-   Option #2
-   1. https://apiexplorer.docusign.com/
-   2. Authenticate using your credentials
-   3. Select any API end point and click on "Send Request" 
-   4. If you receive "Success" response - copy the Authorization Bearer token (token only without Bearer prefix)  
+3. Script will prompt you to log in to your DocuSign account and be presented with a request to grant signature and impersonation permissions to your app, as shown by the screenshot.  
 
-2.
+4. Click on Accept, After you grants permission, you’ll be able to use the OAuth JWT Grant flow to impersonate that user and make API calls.  
+   ![consent](./images/consent.png)
 
-## Deploy the Function App template
-<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fandedevsecops%2FDocuSign-SecurityEvents%2Fmain%2Fazuredeploy_dotcomtenants.json" target="_blank">
-    <img src="https://aka.ms/deploytoazurebutton"/>
-</a>
-<a href="https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fandedevsecops%2FDocuSign-SecurityEvents%2Fmain%2Fazuredeploy_dotgovtenants.json" target="_blank">
-<img src="https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazuregov.png"/>
-</a>
+**Note**  
+It’s only one-time step to collect consent  
+
 
 ## Configuration Steps to Deploy Function App
 1. Click on Deploy to Azure/Deploy to Azure Gov button
+   <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fandedevsecops%2FDocuSign-SecurityEvents%2Fmain%2Fazuredeploy_dotcomtenants.json" target="_blank">
+    <img src="https://aka.ms/deploytoazurebutton"/>
+	</a>
+	<a href="https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fandedevsecops%2FDocuSign-SecurityEvents%2Fmain%2Fazuredeploy_dotgovtenants.json" target="_blank">
+	<img src="https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazuregov.png"/>
+	</a>
 
 2. Select the preferred **Subscription**, **Resource Group** and **Location**  
    **Note**  
@@ -36,22 +60,17 @@ Following are the configuration steps to deploy Data connector.
    Group
 3. Enter the following value in the ARM template deployment
 	```
-	"DocuSignAccessToken": This is the DocuSign OAuth Token
+	"DocuSign Integration Key": DocuSign App Integration Key
+	"DocuSignAdminUserGUID" : Admin User Name GUID
+	"DocuSignAccountID" : DocuSign Account ID
 	"Workspace Id": Azure Log Analytics Workspace Id​
 	"Workspace Key": Azure Log Analytics Workspace Key
-	"CustomLogTableName": Azure Log Analytics Custom Log Table Name
-	"Function Schedule": The `TimerTrigger` makes it incredibly easy to have your functions executed on a schedule. The default **Time Interval** is set to pull
-	the last ten (10) minutes of data.
 	```
 	
 ## Post Deployment Steps
-1. After successful deployment go to your Resource Group and search for storage account, named - `docusign<<uniqueid>>` and upload previously edited json files under "docusign-monitor" container 
-	```
-	ORGS.json
-	lastrun-Monitor.json
-	```
+1. **Important** After successful deployment, Navigate to Resource Group and search for storage account, named - `docusign<<uniqueid>>` and upload previously saved file **"DocuSignRSAPrivateKey.key"** to "docusign-monitor" container  	
 
-2. DocuSignAccessToken and Workspace Key will be placed as "Secrets" in the Azure KeyVault `docusignkv<<uniqueid>>` with only Azure Function access policy. If you want to see/update these secrets,
+2. DocuSignIntegrationKey, DocuSignAdminUserGUID, DocuSignAccountID and Workspace Key will be placed as "Secrets" in the Azure KeyVault `docusignkv<<uniqueid>>` with only Azure Function access policy. If you want to see/update these secrets,
 
 	```
 		a. Go to Azure KeyVault "docusignkv<<uniqueid>>"
@@ -65,7 +84,7 @@ Following are the configuration steps to deploy Data connector.
 
 	```
 
-3. The `TimerTrigger` makes it incredibly easy to have your functions executed on a schedule. This sample demonstrates a simple use case of calling your function based on your schedule provided while deploying. If the time interval needs to be modified, it is recommended to change the Function App Timer Trigger accordingly update environment variable **"Schedule**" (post deployment) to prevent overlapping data ingestion.
+3. The `TimerTrigger` makes it incredibly easy to have your functions executed on a schedule. The default **Time Interval** is set to pull the last ten (10) minutes of data. If the time interval needs to be modified, it is recommended to change the Function App Timer Trigger accordingly update environment variable **"Schedule**" to prevent overlapping data ingestion.
    ```
    a.	Go to your Resource Group --> Click on Function App `docusign<<uniqueid>>`
    b.	Click on Function App "Configuration" under Settings 
@@ -74,24 +93,38 @@ Following are the configuration steps to deploy Data connector.
    ```
    **Note: For a `TimerTrigger` to work, you provide a schedule in the form of a [cron expression](https://en.wikipedia.org/wiki/Cron#CRON_expression)(See the link for full details). A cron expression is a string with 6 separate expressions which represent a given schedule via patterns. The pattern we use to represent every 10 minutes is `0 */10 * * * *`. This, in plain text, means: "When seconds is equal to 0, minutes is divisible by 10, for any hour, day of the month, month, day of the week, or year".**
 
-4. Verify Temp folder path
-	 ```
-	a.	Go to your Resource Group --> Click on Function App `docusign<<uniqueid>>`
-	b.	Click on "Advanced Tools" under Development Tools 
-	c.	Click on Go --> You will be redirected to Web App --> Check Temp folder path. 
-	d.	It can be either C:\local\Temp\ or D:\local\Temp\.
-	 ```
-5. After finding Temp folder path
-	```
-	a.	Go to your Resource Group --> Click on Function App `docusign<<uniqueid>>`
-	b.	Click on "Configuration" under Settings
-	c.	Click on "TMPDIR" under "Application Settings"
-	d.	Update Drive (C//D) based on your findings from Step 9.
-	```
-	**Note: Make sure the value in "TMPDIR" doesnt have "\\" at the end.**
+4. To target your DocuSign Environment, Update the Environment Variable "DocuSignEnvironment"
+   ```
+   a.	Go to your Resource Group --> Click on Function App `docusign<<uniqueid>>`
+   b.	Click on Function App "Configuration" under Settings 
+   c.	Click on "DocuSignEnvironment" under "Application Settings"
+   d.	By Default its "Developer". Update your target environment  
+        Ex: Developer or Production`
 
-6. **For Azure Gov customers only**, You will see additional environment variable "Azure Tenant" under "Configuration" --> "Application Settings" and its default    
-   value is ".us"
+   ```
+5. You can Switch On/Off DocuSign Users Ingestion using "NeedDocuSignUsers" boolean Environment Variable
+   ```
+   a.	Go to your Resource Group --> Click on Function App `docusign<<uniqueid>>`
+   b.	Click on Function App "Configuration" under Settings 
+   c.	Click on "NeedDocuSignUsers" under "Application Settings"
+   d.	By default its "True", you can set it "False" if you dont want DocuSign Users information into your LA Workspace
    
-   Currently this Function App supports "Azure Gov(.US)" tenants
-   Ex: https://portal.azure.us
+   ```
+
+6. You can edit/update LA Table Name for DocuSign SecurityEvents
+   ```
+   a.	Go to your Resource Group --> Click on Function App `docusign<<uniqueid>>`
+   b.	Click on Function App "Configuration" under Settings 
+   c.	Click on "LATableDSMAPI" under "Application Settings"
+   d.	By default its "DocuSignSecurityEvents" 
+
+   ```
+
+7. You can edit/update LA Table Name for DocuSign Users
+   ```
+   a.	Go to your Resource Group --> Click on Function App `docusign<<uniqueid>>`
+   b.	Click on Function App "Configuration" under Settings 
+   c.	Click on "LATableDSUsers" under "Application Settings"
+   d.	By default its "DocuSignUsers" 
+
+   ```
