@@ -1,10 +1,13 @@
 <#  
     Title:          DocuSign Security Events Data Connector
     Language:       PowerShell
-    Version:        1.0
+    Version:        2.0
     Author:         Sreedhar Ande
-    Last Modified:  1/13/2021
-    Comment:        Inital Release
+    Last Modified:  2/16/2021
+    Comment:        V2 re-designed; 
+					Ingests Security Events for your DocuSign account into Azure Log Analytics Workspace using DocuSign Monitor REST API
+                    Ingests DocuSign Account Users into Azure Log Analytics Workspace using DocuSign Users REST API	
+					Note:Above API's resumes getting records from the spot where the previous call left off to avoid duplication of records in DocuSignSecurityEvents_CL and DocuSignUsers_CL Log Analytics Workspace custom tables
 
     DESCRIPTION
     This Function App calls the DocuSign Monitor REST API (https://lens.docusign.net/api/v2.0/datasets/monitor/stream/) to pull the security events for your DocuSign account. 
@@ -42,13 +45,18 @@ $storageAccountContainer = "docusign-monitor"
 $storageAccountTableName = "docusignexecutions"
 $LATableDSMAPI = $env:LATableDSMAPI
 $LATableDSUsers = $env:LATableDSUsers
-$tempDir = $env:TMPDIR
-#The AzureTenant variable is used to specify other cloud environments like Azure Gov(.us) etc.,
-$AzureTenant = $env:AZURE_TENANT
+$LogAnalyticsUri = $env:LogAnalyticsUri
 # Flag to turn on/off DocuSign Users information into LA Workspace Table
 $DocuSignUsersIngestion = $env:NeedDocuSignUsers
 
 $currentStartTime = (get-date).ToUniversalTime() | get-date  -Format yyyy-MM-ddTHH:mm:ss:ffffffZ
+
+# Returning if the Log Analytics Uri is in incorrect format.
+# Sample format supported: https://" + $customerId + ".ods.opinsights.azure.com
+if($LogAnalyticsUri -notmatch 'https:\/\/([\w\-]+)\.ods\.opinsights\.azure.([\w\.]+)')
+{
+    Write-Error -Message "DocuSign-SecurityEvents: Invalid Log Analytics Uri." -ErrorAction Stop
+}
 
 Function Write-OMSLogfile {
     <#
@@ -123,14 +131,14 @@ Function Write-OMSLogfile {
             -method $method `
             -contentType $contentType `
             -resource $resource
-        $uri = "https://" + $customerId + ".ods.opinsights.azure.com" + $resource + "?api-version=2016-04-01"
+        $LogAnalyticsUri = $LogAnalyticsUri + $resource + "?api-version=2016-04-01"
         $headers = @{
             "Authorization"        = $signature;
             "Log-Type"             = $type;
             "x-ms-date"            = $rfc1123date
             "time-generated-field" = $dateTime
         }
-        $response = Invoke-WebRequest -Uri $uri -Method $method -ContentType $contentType -Headers $headers -Body $Body -UseBasicParsing
+        $response = Invoke-WebRequest -Uri $LogAnalyticsUri -Method $method -ContentType $contentType -Headers $headers -Body $Body -UseBasicParsing
         Write-Verbose -message ('Post Function Return Code ' + $response.statuscode)
         return $response.statuscode
     }   
@@ -195,8 +203,8 @@ $timestamp = [int][double]::Parse((Get-Date (Get-Date).ToUniversalTime() -UForma
 $storageAccountContext = New-AzStorageContext -ConnectionString $AzureWebJobsStorage
 $checkBlob = Get-AzStorageBlob -Blob "DocuSignRSAPrivateKey.key" -Container $storageAccountContainer -Context $storageAccountContext
 if($null -ne $checkBlob){
-    Get-AzStorageBlobContent -Blob "DocuSignRSAPrivateKey.key" -Container $storageAccountContainer -Context $storageAccountContext -Destination "$tempDir\DocuSignRSAPrivateKey.key" -Force
-    $privateKeyPath = "$tempDir\DocuSignRSAPrivateKey.key"
+    Get-AzStorageBlobContent -Blob "DocuSignRSAPrivateKey.key" -Container $storageAccountContainer -Context $storageAccountContext -Destination "C:\local\Temp\DocuSignRSAPrivateKey.key" -Force
+    $privateKeyPath = "C:\local\Temp\DocuSignRSAPrivateKey.key"
 }
 else{
     Write-Error "No DocuSignRSAPrivateKey.key file, exiting"
@@ -398,7 +406,7 @@ try {
 			write-host "Command : $_.InvocationInfo.Line"   
 		}	
 	}
-	
+	Remove-Item $privateKeyPath -Force
 	Write-Output "Done."
 
 }

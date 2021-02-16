@@ -60,13 +60,11 @@ It’s only one-time step to collect consent
 
 
 ## Configuration Steps to Deploy Function App
-1. Click on Deploy to Azure/Deploy to Azure Gov button  
-   <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fandedevsecops%2FDocuSign-SecurityEvents%2Fmain%2Fazuredeploy_dotcomtenants.json" target="_blank">
+1. Click on Deploy to Azure (For both Commercial & Azure GOV)  
+   <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fandedevsecops%2FDocuSign-SecurityEvents%2Fmain%2Fazuredeploy_docusign.json" target="_blank">
     <img src="https://aka.ms/deploytoazurebutton"/>
 	</a>
-	<a href="https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fandedevsecops%2FDocuSign-SecurityEvents%2Fmain%2Fazuredeploy_dotgovtenants.json" target="_blank">
-	<img src="https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazuregov.png"/>
-	</a>  
+  
 
 2. Select the preferred **Subscription**, **Resource Group** and **Location**  
    **Note**  
@@ -84,12 +82,12 @@ It’s only one-time step to collect consent
 	
 ## Post Deployment Steps
 1. **Important**  
-   After successful deployment, Navigate to Resource Group and search for storage account, named - `docusign<<uniqueid>>` and upload previously saved file **"DocuSignRSAPrivateKey.key"** to "docusign-monitor" container  	
+   After successful deployment, Navigate to Resource Group and search for storage account, named - `<<FunctionAppName>><<uniqueid>>` and upload previously saved file **"DocuSignRSAPrivateKey.key"** to "docusign-monitor" container  	
 
-2. DocuSignIntegrationKey, DocuSignAdminUserGUID, DocuSignAccountID and Workspace Key will be placed as "Secrets" in the Azure KeyVault `docusignkv<<uniqueid>>` with only Azure Function access policy. If you want to see/update these secrets,
+2. DocuSignIntegrationKey, DocuSignAdminUserGUID, DocuSignAccountID and Workspace Key will be placed as "Secrets" in the Azure KeyVault `<<FunctionAppName>><<uniqueid>>` with only Azure Function access policy. If you want to see/update these secrets,
 
 	```
-		a. Go to Azure KeyVault "docusignkv<<uniqueid>>"
+		a. Go to Azure KeyVault "<<FunctionAppName>><<uniqueid>>"
 		b. Click on "Access Policies" under Settings
 		c. Click on "Add Access Policy"
 			i. Configure from template : Secret Management
@@ -99,10 +97,27 @@ It’s only one-time step to collect consent
 		d. Click "Save"
 
 	```
+	After granting permissions, If you want to update/change value for any Secrets
+	** Step 1 : Update existing Secret Value **
+	```
+		a. Go to Azure KeyVault "<<FunctionAppName>><<uniqueid>>"
+		b. Click on "Secrets" and select "Secret Name"
+		c. Click on "New Version" to create a new version of the existing secret.
+		d. Copy "Secret Identifier"
+	```
+	
+	** Step 2 : Update KeyVault Reference in Azure Function **
+	```
+	   a. Go to your Resource Group --> Click on Function App `<<FunctionAppName>><<uniqueid>>`
+	   b. Click on Function App "Configuration" under Settings 
+	   c. Click on envionment variable that has value in KeyVault under "Application Settings"
+	   d. Update value @Microsoft.KeyVault(SecretUri=<<Step 1 copied Secret Identifier URI>>).
+	   e. Before clicking OK, make sure the status is "Resolved"
+    ```
 
 3. The `TimerTrigger` makes it incredibly easy to have your functions executed on a schedule. The default **Time Interval** is set to pull the last ten (10) minutes of data. If the time interval needs to be modified, it is recommended to change the Function App Timer Trigger accordingly update environment variable **"Schedule**" to prevent overlapping data ingestion.
    ```
-   a.	Go to your Resource Group --> Click on Function App `docusign<<uniqueid>>`
+   a.	Go to your Resource Group --> Click on Function App `<<FunctionAppName>><<uniqueid>>`
    b.	Click on Function App "Configuration" under Settings 
    c.	Click on "Schedule" under "Application Settings"
    d.	Update your own schedule using cron expression.
@@ -111,7 +126,7 @@ It’s only one-time step to collect consent
 
 4. To target your DocuSign Environment, Update the Environment Variable "DocuSignEnvironment"
    ```
-   a.	Go to your Resource Group --> Click on Function App `docusign<<uniqueid>>`
+   a.	Go to your Resource Group --> Click on Function App `<<FunctionAppName>><<uniqueid>>`
    b.	Click on Function App "Configuration" under Settings 
    c.	Click on "DocuSignEnvironment" under "Application Settings"
    d.	By Default its "Developer". Update your target environment  
@@ -120,7 +135,7 @@ It’s only one-time step to collect consent
    ```
 5. You can Switch On/Off DocuSign Users Ingestion using "NeedDocuSignUsers" boolean Environment Variable
    ```
-   a.	Go to your Resource Group --> Click on Function App `docusign<<uniqueid>>`
+   a.	Go to your Resource Group --> Click on Function App `<<FunctionAppName>><<uniqueid>>`
    b.	Click on Function App "Configuration" under Settings 
    c.	Click on "NeedDocuSignUsers" under "Application Settings"
    d.	By default its "True", you can set it "False" if you dont want DocuSign Users information into your LA Workspace
@@ -129,7 +144,7 @@ It’s only one-time step to collect consent
 
 6. You can edit/update LA Table Name for DocuSign SecurityEvents
    ```
-   a.	Go to your Resource Group --> Click on Function App `docusign<<uniqueid>>`
+   a.	Go to your Resource Group --> Click on Function App `<<FunctionAppName>><<uniqueid>>`
    b.	Click on Function App "Configuration" under Settings 
    c.	Click on "LATableDSMAPI" under "Application Settings"
    d.	By default its "DocuSignSecurityEvents" 
@@ -138,7 +153,7 @@ It’s only one-time step to collect consent
 
 7. You can edit/update LA Table Name for DocuSign Users
    ```
-   a.	Go to your Resource Group --> Click on Function App `docusign<<uniqueid>>`
+   a.	Go to your Resource Group --> Click on Function App `<<FunctionAppName>><<uniqueid>>`
    b.	Click on Function App "Configuration" under Settings 
    c.	Click on "LATableDSUsers" under "Application Settings"
    d.	By default its "DocuSignUsers" 
