@@ -53,6 +53,12 @@ $DocuSignUsersIngestion = $env:NeedDocuSignUsers
 $currentStartTime = (get-date).ToUniversalTime() | get-date  -Format yyyy-MM-ddTHH:mm:ss:ffffffZ
 Write-Output "LAURI : $LAURI"
 
+if($LAURI.Trim() -notmatch 'https:\/\/([\w\-]+)\.ods\.opinsights\.azure.([a-zA-Z\.]+)$')
+{
+    Write-Error -Message "DocuSign-SecurityEvents: Invalid Log Analytics Uri." -ErrorAction Stop
+	Exit
+}
+
 
 Function Write-OMSLogfile {
     <#
