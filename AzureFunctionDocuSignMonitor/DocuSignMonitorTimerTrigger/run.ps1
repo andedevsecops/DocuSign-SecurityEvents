@@ -45,12 +45,13 @@ $storageAccountContainer = "docusign-monitor"
 $storageAccountTableName = "docusignexecutions"
 $LATableDSMAPI = $env:LATableDSMAPI
 $LATableDSUsers = $env:LATableDSUsers
-$LogAnalyticsUri = $env:LogAnalyticsUri
+$LAURI = $env:LAURI
+
 # Flag to turn on/off DocuSign Users information into LA Workspace Table
 $DocuSignUsersIngestion = $env:NeedDocuSignUsers
 
 $currentStartTime = (get-date).ToUniversalTime() | get-date  -Format yyyy-MM-ddTHH:mm:ss:ffffffZ
-Write-Output "LogAnalyticsUri : $LogAnalyticsUri"
+Write-Output "LAURI : $LAURI"
 
 
 Function Write-OMSLogfile {
@@ -126,15 +127,15 @@ Function Write-OMSLogfile {
             -method $method `
             -contentType $contentType `
             -resource $resource
-        $LogAnalyticsUri = $LogAnalyticsUri.Trim() + $resource + "?api-version=2016-04-01"
-		Write-Output "LogAnalyticsUri : $LogAnalyticsUri"
+        $LAURI = $LAURI.Trim() + $resource + "?api-version=2016-04-01"
+		Write-Output "LAURI : $LAURI"
         $headers = @{
             "Authorization"        = $signature;
             "Log-Type"             = $type;
             "x-ms-date"            = $rfc1123date
             "time-generated-field" = $dateTime
         }
-        $response = Invoke-WebRequest -Uri $LogAnalyticsUri.Trim() -Method $method -ContentType $contentType -Headers $headers -Body $Body -UseBasicParsing
+        $response = Invoke-WebRequest -Uri $LAURI.Trim() -Method $method -ContentType $contentType -Headers $headers -Body $Body -UseBasicParsing
         Write-Verbose -message ('Post Function Return Code ' + $response.statuscode)
         return $response.statuscode
     }   

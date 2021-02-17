@@ -215,7 +215,7 @@
 			"LATableDSUsers": "DocuSignUsers",
 			"DocuSignEnvironment": "Developer",
 			"NeedDocuSignUsers":"True",
-			"LogAnaltyicsUri": "[variables('LogAnaltyicsUri')]",
+			"LAURI": "[variables('LogAnaltyicsUri')]",
             "WEBSITE_RUN_FROM_PACKAGE": "https://github.com/andedevsecops/DocuSign-SecurityEvents/blob/main/AzureFunctionDocuSignMonitor/DocuSignMonitorTimerTrigger.zip?raw=true"
           }
         }
