@@ -50,13 +50,8 @@ $LogAnalyticsUri = $env:LogAnalyticsUri
 $DocuSignUsersIngestion = $env:NeedDocuSignUsers
 
 $currentStartTime = (get-date).ToUniversalTime() | get-date  -Format yyyy-MM-ddTHH:mm:ss:ffffffZ
+Write-Output "LogAnalyticsUri : $LogAnalyticsUri"
 
-# Returning if the Log Analytics Uri is in incorrect format.
-# Sample format supported: https://" + $customerId + ".ods.opinsights.azure.com
-if($LogAnalyticsUri.Trim() -notmatch 'https:\/\/([\w\-]+)\.ods\.opinsights\.azure.([a-zA-Z\.]+)$')
-{
-    Write-Error -Message "DocuSign-SecurityEvents: Invalid Log Analytics Uri." -ErrorAction Stop
-}
 
 Function Write-OMSLogfile {
     <#
@@ -132,6 +127,7 @@ Function Write-OMSLogfile {
             -contentType $contentType `
             -resource $resource
         $LogAnalyticsUri = $LogAnalyticsUri.Trim() + $resource + "?api-version=2016-04-01"
+		Write-Output "LogAnalyticsUri : $LogAnalyticsUri"
         $headers = @{
             "Authorization"        = $signature;
             "Log-Type"             = $type;
