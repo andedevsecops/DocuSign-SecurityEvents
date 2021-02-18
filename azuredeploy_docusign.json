@@ -3,7 +3,7 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "FunctionName": {
-      "defaultValue": "DocuSign",
+      "defaultValue": "DocuSignSecurityEvents",
       "type": "string",
       "metadata": {
         "description": "Specifies the name of the Function App."
@@ -46,7 +46,7 @@
     }	
   },
   "variables": {
-    "FunctionName": "[concat(toLower(parameters('FunctionName')), uniqueString(resourceGroup().id))]",
+    "FunctionName": "[[concat(toLower(parameters('FunctionName')), uniqueString(resourceGroup().id), uniqueString(subscription().id))]",
 	"StorageAccountName":"[substring(variables('FunctionName'), 0, 22)]",    
 	"KeyVaultName": "[substring(variables('FunctionName'), 0, 22)]",
     "DocuSignIntegrationKey": "DocuSignIntegrationKey",
@@ -216,6 +216,7 @@
 			"DocuSignEnvironment": "Developer",
 			"NeedDocuSignUsers":"True",
 			"LAURI": "[variables('LogAnaltyicsUri')]",
+			"DocuSignUserInfoBaseURI" : "https://demo.docusign.net",
             "WEBSITE_RUN_FROM_PACKAGE": "https://github.com/andedevsecops/DocuSign-SecurityEvents/blob/main/AzureFunctionDocuSignMonitor/DocuSignMonitorTimerTrigger.zip?raw=true"
           }
         }

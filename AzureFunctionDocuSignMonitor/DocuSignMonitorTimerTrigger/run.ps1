@@ -46,6 +46,7 @@ $storageAccountTableName = "docusignexecutions"
 $LATableDSMAPI = $env:LATableDSMAPI
 $LATableDSUsers = $env:LATableDSUsers
 $LAURI = $env:LAURI
+$DocuSignUserInfoBaseURI = $env:DocuSignUserInfoBaseURI
 
 # Flag to turn on/off DocuSign Users information into LA Workspace Table
 $DocuSignUsersIngestion = $env:NeedDocuSignUsers
@@ -380,7 +381,7 @@ try {
 		try{
 			$docuSignUsersAPI = $null
 			$userApiResponse = $null
-			$docuSignUsersAPI = "https://demo.docusign.net/restapi/v2.1/accounts/$DocuSignAccountAPIID/users?additional_info=true&start_position=$startUserValue"
+			$docuSignUsersAPI = "$DocuSignUserInfoBaseURI/restapi/v2.1/accounts/$DocuSignAccountAPIID/users?additional_info=true&start_position=$startUserValue"
 			Write-Output "Calling DocuSign Users API"
 			$userApiResponse = Invoke-RestMethod -Uri $docuSignUsersAPI -Method 'GET' -Headers $docuSignAPIHeaders
 
