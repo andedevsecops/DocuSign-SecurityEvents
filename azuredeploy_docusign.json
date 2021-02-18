@@ -47,8 +47,8 @@
   },
   "variables": {
     "FunctionName": "[concat(toLower(parameters('FunctionName')), uniqueString(resourceGroup().id), uniqueString(subscription().id))]",
-	"StorageAccountName":"[substring(variables('FunctionName'), 0, 22)]",    
-	"KeyVaultName": "[substring(variables('FunctionName'), 0, 22)]",
+	"StorageAccountName":"[concat(substring(variables('FunctionName'), 0, 20), 'sa')]",    
+	"KeyVaultName": "[concat(substring(variables('FunctionName'), 0, 20), 'kv')]",
     "DocuSignIntegrationKey": "DocuSignIntegrationKey",
 	"DocuSignAdminUserGUID" : "DocuSignAdminUserGUID",
 	"DocuSignAccountAPIID" : "DocuSignAccountAPIID",
