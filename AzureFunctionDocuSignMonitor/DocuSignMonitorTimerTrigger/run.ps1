@@ -305,7 +305,7 @@ try {
 		$docuSignTimeStampTbl = (Get-AzStorageTable -Name $storageAccountTableName -Context $storageAccountContext.Context).cloudTable
 	}
 	# retrieve the last execution values
-	$lastExeEndCursor = Get-azTableRow -table $docuSignTimeStampTbl -partitionKey "docusignmonitor" -RowKey "lastRunEndCursor" -ErrorAction Ignore	
+	$lastExeEndCursor = Get-AzTableRow -table $docuSignTimeStampTbl -partitionKey "docusignmonitor" -RowKey "lastRunEndCursor" -ErrorAction Ignore	
 	$lastRunEndCursorValue = $lastExeEndCursor.lastCursorValue
 	
 	$complete=$false    
@@ -385,7 +385,7 @@ try {
 			$usersList = @()
             foreach($dsUser in $docuSignUsers)
             {
-                $isUserExisting = Get-azTableRow -table $docuSignTimeStampTbl -partitionKey $dsUser.userId.ToString() -ErrorAction Ignore
+                $isUserExisting = Get-AzTableRow -table $docuSignTimeStampTbl -partitionKey $dsUser.userId.ToString() -ErrorAction Ignore
                 if ($null -eq $isUserExisting) {
                     Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey $dsUser.userId.ToString() -RowKey $dsUser.userName.ToString() -UpdateExisting
                     $usersList += $dsUser
