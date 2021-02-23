@@ -390,9 +390,7 @@ try {
 					Write-Output "IsUserExisting : $isUserExisting"
                     Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey $dsUser.userId.ToString() -RowKey $dsUser.userName.ToString()
 					try{						
-						$accountUsers += "Sree"
-						$accountUsers += "dhar"
-						
+						$accountUsers += ($dsUser | ConvertTo-Json)			
 					}
 					catch {
 						write-host "Error : $_.ErrorDetails.Message"
@@ -401,7 +399,7 @@ try {
             }	
             $totalUsers = $accountUsers.Length  
 			if($totalUsers -gt 0) {      
-                #$postReturnCode = SendToLogA -EventsData $accountUsers -EventsTable $LATable_DSUsers
+                $postReturnCode = SendToLogA -EventsData $accountUsers -EventsTable $LATable_DSUsers
                 
                 if($postReturnCode -eq 200)
                 {
