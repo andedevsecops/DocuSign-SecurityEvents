@@ -382,12 +382,13 @@ try {
 			$userApiResponse = Invoke-RestMethod -Uri $docuSignUsersAPI -Method 'GET' -Headers $docuSignAPIHeaders			
 			$docuSignUsers = $userApiResponse.users
 			
-			$usersList = @()
+			[AllowEmptyCollection()] $usersList = @()
             foreach($dsUser in $docuSignUsers)
             {
                 $isUserExisting = Get-AzTableRow -table $docuSignTimeStampTbl -partitionKey $dsUser.userId.ToString() -ErrorAction Ignore
                 if ($null -eq $isUserExisting) {
-                    Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey $dsUser.userId.ToString() -RowKey $dsUser.userName.ToString() -UpdateExisting
+					Write-Output "IsUserExisting : $isUserExisting"
+                    Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey $dsUser.userId.ToString() -RowKey $dsUser.userName.ToString()					
                     $usersList += $dsUser
                 }
             }	
