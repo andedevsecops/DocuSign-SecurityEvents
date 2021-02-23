@@ -382,7 +382,7 @@ try {
 			$userApiResponse = Invoke-RestMethod -Uri $docuSignUsersAPI -Method 'GET' -Headers $docuSignAPIHeaders			
 			$docuSignUsers = $userApiResponse.users
 									
-			$accountUsers = $null
+			$accountUsers = @()
             foreach($dsUser in $docuSignUsers)
             {
                 $isUserExisting = Get-AzTableRow -table $docuSignTimeStampTbl -partitionKey $dsUser.userId.ToString() -ErrorAction Ignore
@@ -390,7 +390,9 @@ try {
 					Write-Output "IsUserExisting : $isUserExisting"
                     Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey $dsUser.userId.ToString() -RowKey $dsUser.userName.ToString()
 					try{						
-						$accountUsers += $dsUser
+						$accountUsers += "Sree"
+						$accountUsers += "dhar"
+						
 					}
 					catch {
 						write-host "Error : $_.ErrorDetails.Message"
@@ -399,7 +401,7 @@ try {
             }	
             $totalUsers = $accountUsers.Length  
 			if($totalUsers -gt 0) {      
-                $postReturnCode = SendToLogA -EventsData $accountUsers -EventsTable $LATable_DSUsers
+                #$postReturnCode = SendToLogA -EventsData $accountUsers -EventsTable $LATable_DSUsers
                 
                 if($postReturnCode -eq 200)
                 {
