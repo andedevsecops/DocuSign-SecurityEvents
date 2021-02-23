@@ -382,7 +382,7 @@ try {
 			$userApiResponse = Invoke-RestMethod -Uri $docuSignUsersAPI -Method 'GET' -Headers $docuSignAPIHeaders			
 			$docuSignUsers = $userApiResponse.users
 			
-			[AllowEmptyCollection()][string[]]$usersList			
+			$usersList = @()		
             foreach($dsUser in $docuSignUsers)
             {
                 $isUserExisting = Get-AzTableRow -table $docuSignTimeStampTbl -partitionKey $dsUser.userId.ToString() -ErrorAction Ignore
@@ -390,7 +390,7 @@ try {
 					Write-Output "IsUserExisting : $isUserExisting"
                     Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey $dsUser.userId.ToString() -RowKey $dsUser.userName.ToString()
 					try{
-						$usersList += $dsUser
+						$usersList = $usersList += $dsUser
 					}
 					catch {
 						write-host "Error : $_.ErrorDetails.Message"
