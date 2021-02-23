@@ -381,7 +381,8 @@ try {
 			Write-Output "Calling DocuSign Users API"
 			$userApiResponse = Invoke-RestMethod -Uri $docuSignUsersAPI -Method 'GET' -Headers $docuSignAPIHeaders			
 			$docuSignUsers = $userApiResponse.users
-									
+			
+			$accountUsers = [System.Collections.Generic.List[PSObject]]@()						
 			foreach($dsUser in $docuSignUsers)
             {
                 $isUserExisting = Get-AzTableRow -table $docuSignTimeStampTbl -partitionKey $dsUser.userId.ToString() -ErrorAction Ignore
@@ -389,7 +390,7 @@ try {
 					Write-Output "IsUserExisting : $isUserExisting"
                     Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey $dsUser.userId.ToString() -RowKey $dsUser.userName.ToString()
 					try{						
-						$accountUsers += ($dsUser | ConvertTo-Json)			
+						$accountUsers.Add($dsUser)			
 					}
 					catch {
 						write-host "Error : $_.ErrorDetails.Message"
