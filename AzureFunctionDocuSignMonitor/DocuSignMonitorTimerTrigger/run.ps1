@@ -390,7 +390,7 @@ try {
 					Write-Output "IsUserExisting : $isUserExisting"
                     Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey $dsUser.userId.ToString() -RowKey $dsUser.userName.ToString()
 					try{
-						$usersList += dsUser
+						$usersList += $dsUser
 					}
 					catch {
 						write-host "Error : $_.ErrorDetails.Message"
