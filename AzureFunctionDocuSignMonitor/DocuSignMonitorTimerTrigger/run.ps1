@@ -372,8 +372,7 @@ try {
 	} While ($complete -eq $false )
 	
 	#users Export
-	if ($DocuSignUsersIngestion.ToLower() -eq "true"){		
-		Write-Host "Ingesting DocuSign Users information to $LATableDSUsers"
+	if ($DocuSignUsersIngestion.ToLower() -eq "true"){				
 		try{
 			$docuSignUsersAPI = $null
 			$userApiResponse = $null
@@ -398,25 +397,22 @@ try {
 					}
                 }
             }
-			Write-Output "*******************"
-			Write-Output $accountUsers.Count
-			Write-Output "*******************"
+			
             $totalUsers = $accountUsers.Count  
 			if($totalUsers -gt 0) {      
-				Write-Output "Sending Users to LA"
-                $postReturnCode = SendToLogA -EventsData $accountUsers -EventsTable $LATable_DSUsers
+				Write-Host "Ingesting DocuSign Users information to $LATableDSUsers"
+                $postReturnCode = SendToLogA -EventsData $accountUsers -EventsTable $LATableDSUsers
                 Write-Output $postReturnCode
                 if($postReturnCode -eq 200)
                 {
-                    Write-Output ("$totalUsers users have been ingested into Azure Log Analytics Workspace Table {$LATable_DSUsers}")
+                    Write-Output ("$totalUsers users have been ingested into Azure Log Analytics Workspace Table $LATableDSUsers")
                 }
             }
             else {
                 Write-Output ("No New Users")
             }
 			
-			Remove-Item $userApiResponse
-			Remove-Item $accountUsers
+			Remove-Item $userApiResponse			
 		}
 		catch {
 			$int = 0
