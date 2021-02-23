@@ -389,7 +389,7 @@ try {
                 if ($null -eq $isUserExisting) {
 					Write-Output "IsUserExisting : $isUserExisting"
                     Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey $dsUser.userId.ToString() -RowKey $dsUser.userName.ToString()					
-                    $usersList += $dsUser
+                    $usersList.Add($dsUser)
                 }
             }	
             $totalUsers = $usersList.Length  
