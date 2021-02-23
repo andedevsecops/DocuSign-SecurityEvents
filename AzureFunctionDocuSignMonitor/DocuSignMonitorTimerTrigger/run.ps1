@@ -382,8 +382,7 @@ try {
 			$userApiResponse = Invoke-RestMethod -Uri $docuSignUsersAPI -Method 'GET' -Headers $docuSignAPIHeaders			
 			$docuSignUsers = $userApiResponse.users
 									
-			$accountUsers = @()
-            foreach($dsUser in $docuSignUsers)
+			foreach($dsUser in $docuSignUsers)
             {
                 $isUserExisting = Get-AzTableRow -table $docuSignTimeStampTbl -partitionKey $dsUser.userId.ToString() -ErrorAction Ignore
                 if ($null -eq $isUserExisting) {
@@ -409,7 +408,8 @@ try {
             else {
                 Write-Output ("No New Users")
             }
-			Remove-Item $userApiResponse			
+			Remove-Item $userApiResponse
+			Remove-Item $accountUsers
 		}
 		catch {
 			$int = 0
