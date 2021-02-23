@@ -382,7 +382,7 @@ try {
 			$userApiResponse = Invoke-RestMethod -Uri $docuSignUsersAPI -Method 'GET' -Headers $docuSignAPIHeaders			
 			$docuSignUsers = $userApiResponse.users
 			
-			$accountUsers = [System.Collections.Generic.List[PSObject]]@()						
+			$accountUsers = @()						
 			foreach($dsUser in $docuSignUsers)
             {
                 $isUserExisting = Get-AzTableRow -table $docuSignTimeStampTbl -partitionKey $dsUser.userId.ToString() -ErrorAction Ignore
@@ -390,17 +390,22 @@ try {
 					Write-Output "IsUserExisting : $isUserExisting"
                     Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey $dsUser.userId.ToString() -RowKey $dsUser.userName.ToString()
 					try{				
-						$accountUsers += [PSObject]@{$dsUser}
+						$accountUsers += $dsUser
 					}
 					catch {
 						write-host "Error : $_.ErrorDetails.Message"
+						write-host "Command : $_.InvocationInfo.Line"
 					}
                 }
-            }	
-            $totalUsers = $accountUsers.Length  
+            }
+			Write-Output "*******************"
+			Write-Output $accountUsers.Count
+			Write-Output "*******************"
+            $totalUsers = $accountUsers.Count  
 			if($totalUsers -gt 0) {      
+				Write-Output "Sending Users to LA"
                 $postReturnCode = SendToLogA -EventsData $accountUsers -EventsTable $LATable_DSUsers
-                
+                Write-Output $postReturnCode
                 if($postReturnCode -eq 200)
                 {
                     Write-Output ("$totalUsers users have been ingested into Azure Log Analytics Workspace Table {$LATable_DSUsers}")
@@ -409,6 +414,7 @@ try {
             else {
                 Write-Output ("No New Users")
             }
+			
 			Remove-Item $userApiResponse
 			Remove-Item $accountUsers
 		}
