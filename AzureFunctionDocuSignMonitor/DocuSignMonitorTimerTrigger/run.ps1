@@ -389,8 +389,8 @@ try {
                 if ($null -eq $isUserExisting) {
 					Write-Output "IsUserExisting : $isUserExisting"
                     Add-AzTableRow -table $docuSignTimeStampTbl -PartitionKey $dsUser.userId.ToString() -RowKey $dsUser.userName.ToString()
-					try{						
-						$accountUsers.Add($dsUser)			
+					try{				
+						$accountUsers += [PSObject]@{$dsUser}
 					}
 					catch {
 						write-host "Error : $_.ErrorDetails.Message"
